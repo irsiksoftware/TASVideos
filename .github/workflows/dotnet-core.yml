@@ -25,6 +25,41 @@ jobs:
           - 5432:5432
 
     steps:
+    - name: Notify Discord
+      run: |
+        $webhookUrl = if ($env:GITHUB_EVENT_NAME -eq "push") {
+          "${{ secrets.COMMIT_WEBHOOK }}"
+        } elseif ($env:GITHUB_EVENT_NAME -eq "pull_request") {
+          "${{ secrets.PULLREQUEST_WEBHOOK }}"
+        } elseif ($env:GITHUB_EVENT_NAME -eq "release") {
+          "${{ secrets.RELEASE_WEBHOOK }}"
+        }
+        if ($webhookUrl) {
+          $payload = @{
+            content = "**$env:GITHUB_EVENT_NAME** event triggered for $env:GITHUB_REPOSITORY on branch $env:GITHUB_REF_NAME by $env:GITHUB_ACTOR"
+            embeds = @(
+              @{
+                title = "$env:GITHUB_EVENT_NAME - $env:GITHUB_REPOSITORY"
+                url = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+                color = 5814783
+                fields = @(
+                  @{
+                    name = "Branch"
+                    value = $env:GITHUB_REF_NAME
+                    inline = $true
+                  }
+                  @{
+                    name = "Triggered by"
+                    value = $env:GITHUB_ACTOR
+                    inline = $true
+                  }
+                )
+              }
+            )
+          } | ConvertTo-Json -Depth 10
+          Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $payload -ContentType 'application/json'
+        }
+      shell: pwsh
     - uses: actions/checkout@v2
     - name: Set up .NET Core 8.0.x
       uses: actions/setup-dotnet@v1
