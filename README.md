@@ -13,3 +13,8 @@ Contributions are encouraged but should follow site coding standards: https://ta
 # Try it out!
 Wiki page for setting up local development: https://github.com/TASVideos/tasvideos/wiki/Local-Development-Setup
 
+---
+
+**Why did the TAS speedrunner break up with their partner?**
+
+Because they were too frame-perfect and never had time for unoptimized relationships!
