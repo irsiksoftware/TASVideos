@@ -1,0 +1,71 @@
+﻿@page "{id?}"
+@model EditModel
+@{
+	ViewData.SetTitle(Model.Id.HasValue
+		? $"Editing Game #{Model.Id} {Model.Game.DisplayName}"
+		: "Create a new Game entry");
+}
+<top-button-bar>
+	<a class="btn btn-primary" asp-page="/Logs/Index" asp-route-table="Games" asp-route-rowId="@Model.Id" >History</a>
+	<delete-button permission="DeleteGameEntries" condition="@Model.CanDelete" asp-href="/Games/Edit/@(Model.Id ?? 0)?handler=Delete"></delete-button>
+</top-button-bar>
+<form client-side-validation="true" method="post">
+	<row>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Game.DisplayName"></label>
+				<input asp-for="Game.DisplayName" autocomplete="off" />
+				<span asp-validation-for="Game.DisplayName"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Game.Abbreviation"></label>
+				<div class="input-group">
+					<input asp-for="Game.Abbreviation" autocomplete="off" spellcheck="false" style="text-transform: lowercase;" />
+					<a
+						asp-page="/Wiki/Referrers"
+						asp-route-path="Games/@Model.Game.Abbreviation"
+						asp-route-returnurl="@HttpContext.CurrentPathToReturnUrl()"
+						class="btn btn-primary">
+						Referrers
+					</a>
+				</div>
+				<span asp-validation-for="Game.Abbreviation"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Game.GameResourcesPage"></label>
+				<div class="input-group">
+					<div class="input-group-prepend">
+						<span class="input-group-text">@(Request.ToBaseUrl())/</span>
+					</div>
+					<input asp-for="Game.GameResourcesPage" autocomplete="off" spellcheck="false" />
+				</div>
+				<span asp-validation-for="Game.GameResourcesPage"></span>
+			</fieldset>
+		</column>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Game.Aliases">Aliases (comma-separated)</label>
+				<input asp-for="Game.Aliases" autocomplete="off" spellcheck="false" />
+				<span asp-validation-for="Game.Aliases"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Game.ScreenshotUrl"></label>
+				<input asp-for="Game.ScreenshotUrl" autocomplete="off" spellcheck="false" />
+				<span asp-validation-for="Game.ScreenshotUrl"></span>
+			</fieldset>
+		</column>
+	</row>
+	<fieldset>
+		<label asp-for="Game.Genres"></label>
+		<select asp-for="Game.Genres" multiselect="true" asp-items="Model.AvailableGenres"></select>
+	</fieldset>
+	<fieldset>
+		<label asp-for="Game.Groups"></label>
+		<select asp-for="Game.Groups" multiselect="true" asp-items="Model.AvailableGroups"></select>
+	</fieldset>
+	<form-button-bar>
+		<submit-button edit="@Model.Id.HasValue"></submit-button>
+		<cancel-link asp-page="List"></cancel-link>
+		<minor-edit></minor-edit>
+	</form-button-bar>
+</form>

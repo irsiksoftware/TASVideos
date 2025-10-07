@@ -1,0 +1,23 @@
+﻿@model TASVideos.Core.Services.Wiki.IWikiPage
+
+<top-button-bar>
+	<partial name="_ListLanguages" model="Model" />
+	<edit-link condition="User.CanEditWiki(Model.PageName)" asp-page="/Wiki/Edit" asp-route-path="@Model.PageName" class="btn-sm"></edit-link>
+</top-button-bar>
+
+@if (Model.IsSystemPage())
+{
+	<info-alert>
+		@await Html.RenderWiki(SystemWiki.IsSystemPage)
+	</info-alert>
+}
+else if (Model.IsGameResourcesPage())
+{
+	<info-alert>
+		@await Html.RenderWiki(SystemWiki.GameResourcesHeader)
+	</info-alert>
+}
+else if (Model.IsHomePage())
+{
+	<partial name="_HomePageHeader" model="Model" />
+}

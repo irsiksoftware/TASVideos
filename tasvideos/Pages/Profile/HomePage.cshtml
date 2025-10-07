@@ -1,0 +1,33 @@
+﻿@page
+@using TASVideos.Core.Services.Wiki
+@inject IWikiPages WikiPages
+@{
+	ViewData.SetTitle("Home Page");
+	ViewData.AddActivePage(ProfileNavPages.HomePage);
+	var homePage = $"{LinkConstants.HomePages}{User.Name()}";
+	bool pageExists = await WikiPages.Exists(homePage);
+}
+@if (User.Has(PermissionTo.EditHomePage))
+{
+	<top-button-bar>
+		<a class="btn btn-secondary" href="/@homePage"><i class="fa fa-eye"></i> Full View</a>
+		<edit-link asp-page="/Wiki/Edit" asp-route-path="@homePage"></edit-link>
+	</top-button-bar>
+}
+else
+{
+	<warning-alert>
+		@await Html.RenderWiki(SystemWiki.HomePageCannotBeEdited)
+	</warning-alert>
+}
+
+@if (pageExists)
+{
+	@await Html.RenderWiki(homePage)
+}
+else if (User.Has(PermissionTo.EditHomePage))
+{
+	<info-alert>
+		@await Html.RenderWiki(SystemWiki.HomePageDoesNotExist)
+	</info-alert>
+}

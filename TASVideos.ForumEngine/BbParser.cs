@@ -1,0 +1,498 @@
+﻿using System.Text;
+using System.Text.RegularExpressions;
+
+namespace TASVideos.ForumEngine;
+
+public partial class BbParser
+{
+	private static readonly Regex OpeningTag = OpeningTagRegex();
+	private static readonly Regex ClosingTag = ClosingTagRegex();
+	private static readonly Regex Url = UrlRegex();
+
+	private static readonly Regex BlockTrimAfterEntering = BlockTrimAfterEnteringRegex();
+	private static readonly Regex BlockTrimAfterLeaving = BlockTrimAfterLeavingRegex();
+
+	// The old system does support attributes in html tags, but only a few that we probably don't want,
+	// and it doesn't even support the full html syntax for them.  So forget attributes for now
+	private static readonly Regex HtmlOpening = HtmlOpeningRegex();
+	private static readonly Regex HtmlClosing = HtmlClosingRegex();
+
+	private static readonly Regex HtmlVoid = HtmlVoidRegex();
+
+	private class TagInfo
+	{
+		public enum ChildrenAllowed
+		{
+			/// <summary>
+			/// This tag can have child nodes.
+			/// </summary>
+			Yes,
+
+			/// <summary>
+			/// This tag cannot have child nodes and potential children should be parsed as raw text.
+			/// </summary>
+			No,
+
+			/// <summary>
+			/// If this tag has a non-empty parameter, behaves like Yes, otherwise, like No.
+			/// </summary>
+			IfParam,
+
+			/// <summary>
+			/// This tag immediately self closes and cannot have children
+			/// </summary>
+			Void,
+		}
+
+		public ChildrenAllowed Children;
+
+		public enum SelfNestingAllowed
+		{
+			/// <summary>
+			/// This tag can nest in itself freely.
+			/// </summary>
+			Yes,
+
+			/// <summary>
+			/// This tag cannot nest in itself, and should autoclose any existing instances of itself at any level.
+			/// </summary>
+			No,
+
+			/// <summary>
+			/// This tag can nest in itself, but it can't be an immediate child of itself.
+			/// </summary>
+			NoImmediate,
+		}
+
+		public SelfNestingAllowed SelfNesting;
+
+		/// <summary>
+		/// If true, the tag will be rendered as block level content, and we should try to do some HTML-ish whitespace elision on it.
+		/// </summary>
+		public bool IsBlock;
+
+		/// <summary>
+		/// If set, this tag can only appear directly nested under another tag.
+		/// </summary>
+		public string? RequiredParent;
+	}
+
+	private static readonly Dictionary<string, TagInfo> KnownTags = new()
+	{
+		// basic text formatting, no params, and body is content
+		{ "b", new() },
+		{ "i", new() },
+		{ "u", new() },
+		{ "s", new() },
+		{ "sub", new() },
+		{ "sup", new() },
+		{ "tt", new() },
+		{ "left", new() { IsBlock = true } },
+		{ "right", new() { IsBlock = true } },
+		{ "center", new() { IsBlock = true } },
+		{ "spoiler", new() },
+		{ "warning", new() { IsBlock = true } },
+		{ "note", new() { IsBlock = true } },
+		{ "highlight", new() },
+
+		// with optional params
+		{ "quote", new() { IsBlock = true } }, // optional author
+		{ "code", new() { Children = TagInfo.ChildrenAllowed.No, IsBlock = true } }, // optional language
+		{ "img", new() { Children = TagInfo.ChildrenAllowed.No } }, // optional size
+		{ "url", new() { Children = TagInfo.ChildrenAllowed.IfParam, SelfNesting = TagInfo.SelfNestingAllowed.No } }, // optional url.  if not given, url in body
+		{ "email", new() { Children = TagInfo.ChildrenAllowed.IfParam } }, // like url
+		{ "video", new() { Children = TagInfo.ChildrenAllowed.No } }, // like img
+		{ "google", new() { Children = TagInfo.ChildrenAllowed.No } }, // search query in body.  optional param `images`
+		{ "thread", new() { Children = TagInfo.ChildrenAllowed.IfParam } }, // like url, but the link is a number
+		{ "post", new() { Children = TagInfo.ChildrenAllowed.IfParam } }, // like thread
+		{ "game", new() { Children = TagInfo.ChildrenAllowed.IfParam } }, // like thread
+		{ "gamegroup", new() { Children = TagInfo.ChildrenAllowed.IfParam } }, // like thread
+		{ "movie", new() { Children = TagInfo.ChildrenAllowed.IfParam } }, // like thread
+		{ "submission", new() { Children = TagInfo.ChildrenAllowed.IfParam } }, // like thread
+		{ "userfile", new() { Children = TagInfo.ChildrenAllowed.IfParam } }, // like thread
+		{ "wiki", new() { Children = TagInfo.ChildrenAllowed.IfParam } }, // like thread, but the link is a page name
+
+		// other stuff
+		{ "frames", new() { Children = TagInfo.ChildrenAllowed.No } }, // no params.  body is something like `200` or `200@60.1`
+		{ "color", new() }, // param is a css (?) color
+		{ "bgcolor", new() }, // like color
+		{ "size", new() }, // param is something relating to font size TODO: what are the values?
+		{ "noparse", new() { Children = TagInfo.ChildrenAllowed.No } },
+		{ "hr", new() { Children = TagInfo.ChildrenAllowed.Void, IsBlock = true } },
+
+		// list related stuff
+		{ "list", new() { IsBlock = true } }, // OLs have a param with value ??
+		{ "*", new() { SelfNesting = TagInfo.SelfNestingAllowed.NoImmediate, IsBlock = true, RequiredParent = "list" } },
+
+		// tables
+		{ "table", new() { SelfNesting = TagInfo.SelfNestingAllowed.No, IsBlock = true } },
+		{ "tr", new() { SelfNesting = TagInfo.SelfNestingAllowed.No, IsBlock = true, RequiredParent = "table" } },
+		{ "td", new() { SelfNesting = TagInfo.SelfNestingAllowed.No, IsBlock = true, RequiredParent = "tr" } },
+		{ "th", new() { SelfNesting = TagInfo.SelfNestingAllowed.No, IsBlock = true, RequiredParent = "tr" } },
+	};
+
+	// html parsing, except the empty tags <br> and <hr>, as they immediately close
+	// so their parse state is not needed
+	private static readonly HashSet<string> KnownNonEmptyHtmlTags =
+	[
+		"b",
+		"i",
+		"em",
+		"u",
+		"pre",
+		"code",
+		"tt",
+		"strike",
+		"s",
+		"del",
+		"sup",
+		"sub",
+		"div",
+		"small"
+	];
+
+	public static Element Parse(string text, bool allowHtml, bool allowBb)
+	{
+		var p = new BbParser(text, allowHtml, allowBb);
+		p.ParseLoop();
+		return p._root;
+	}
+
+	public static bool ContainsHtml(string text, bool allowBb)
+	{
+		var p = new BbParser(text, true, allowBb);
+		p.ParseLoop();
+		return p._didHtml;
+	}
+
+	private readonly Element _root = new() { Name = "_root" };
+	private readonly Stack<Element> _stack = new();
+
+	private readonly string _input;
+	private int _index;
+
+	private readonly bool _allowHtml;
+	private readonly bool _allowBb;
+	private bool _didHtml;
+
+	private readonly StringBuilder _currentText = new();
+
+	private BbParser(string input, bool allowHtml, bool allowBb)
+	{
+		_input = input;
+		_allowHtml = allowHtml;
+		_allowBb = allowBb;
+		_stack.Push(_root);
+	}
+
+	private void FlushText()
+	{
+		if (_currentText.Length > 0)
+		{
+			_stack.Peek().Children.Add(new Text { Content = _currentText.ToString() });
+			_currentText.Clear();
+		}
+	}
+
+	private void Push(Element e)
+	{
+		_stack.Peek().Children.Add(e);
+		_stack.Push(e);
+	}
+
+	private bool ChildrenExpected()
+	{
+		if (KnownTags.TryGetValue(_stack.Peek().Name, out var state))
+		{
+			return state.Children switch
+			{
+				TagInfo.ChildrenAllowed.No => false,
+				TagInfo.ChildrenAllowed.IfParam => _stack.Peek().Options != "",
+				TagInfo.ChildrenAllowed.Yes => true,
+				TagInfo.ChildrenAllowed.Void => throw new Exception("Didn't expect a void tag to stay on the stack."),
+				_ => throw new Exception("Unepxected enum value")
+			};
+		}
+
+		// "li" or "_root" or any of the html tags
+		return true;
+	}
+
+	private bool TagHasValidParent(string nextTag, TagInfo nextTagInfo, out Element popTo)
+	{
+		var stackCopy = _stack.ToList();
+
+		int popThrough;
+		if (nextTagInfo.SelfNesting == TagInfo.SelfNestingAllowed.No)
+		{
+			// Try to pop a matching tag
+			popThrough = stackCopy.FindIndex(e => e.Name == nextTag);
+		}
+		else if (nextTagInfo.SelfNesting == TagInfo.SelfNestingAllowed.NoImmediate)
+		{
+			// Try to pop a matching tag, but only at this level
+			popThrough = stackCopy[0].Name == nextTag ? 0 : -1;
+		}
+		else
+		{
+			popThrough = -1;
+		}
+
+		popTo = stackCopy[popThrough + 1];
+		return nextTagInfo.RequiredParent == null || nextTagInfo.RequiredParent == popTo.Name;
+	}
+
+	private void ParseLoop()
+	{
+		while (_index < _input.Length)
+		{
+			{
+				Match m;
+				if (_allowBb
+					&& ChildrenExpected()
+					&& (m = Url.Match(_input, _index)).Success
+					&& _stack.All(element => element.Name != "url"))
+				{
+					FlushText();
+					Push(new Element { Name = "url" });
+					_currentText.Append(m.Value);
+					FlushText();
+					_index += m.Length;
+					_stack.Pop();
+					continue;
+				}
+			}
+
+			var c = _input[_index++];
+			if (_allowBb && c == '[') // check for possible tags
+			{
+				Match m;
+				if (ChildrenExpected() && (m = OpeningTag.Match(_input, _index)).Success)
+				{
+					var name = m.Groups[1].Value;
+					var options = m.Groups[3].Value;
+					if (options.Length >= 2 && options[0] == '"' && options[^1] == '"')
+					{
+						options = options[1..^1];
+					}
+
+					if (KnownTags.TryGetValue(name, out var state) && TagHasValidParent(name, state, out var popTo))
+					{
+						var e = new Element { Name = name, Options = options };
+						FlushText();
+						_index += m.Length;
+
+						while (_stack.Peek() != popTo)
+						{
+							_stack.Pop();
+						}
+
+						if (state.IsBlock)
+						{
+							Match n;
+							if ((n = BlockTrimAfterEntering.Match(_input, _index)).Success)
+							{
+								_index += n.Length;
+							}
+						}
+
+						Push(e);
+
+						if (state.Children == TagInfo.ChildrenAllowed.Void)
+						{
+							_stack.Pop();
+						}
+
+						continue;
+					}
+					else
+					{
+						// Tag not recognized?  OK, process as raw text
+					}
+				}
+				else if ((m = ClosingTag.Match(_input, _index)).Success)
+				{
+					var name = m.Groups[1].Value;
+					var matching = _stack.FirstOrDefault(elt => elt.Name == name);
+					if (matching != null)
+					{
+						FlushText();
+						_index += m.Length;
+						while (true)
+						{
+							if (_stack.Pop() == matching)
+							{
+								break;
+							}
+						}
+
+						if (KnownTags.TryGetValue(matching.Name, out var oldState) && oldState.IsBlock)
+						{
+							Match n;
+							if ((n = BlockTrimAfterLeaving.Match(_input, _index)).Success)
+							{
+								_index += n.Length;
+							}
+						}
+
+						continue;
+					}
+					else
+					{
+						// closing didn't match opening?  OK, process as raw text
+					}
+				}
+				else
+				{
+					// '[' but not followed by a valid tag?  OK, process as raw text
+				}
+			}
+			else if (_allowHtml && c == '<') // check for possible HTML tags
+			{
+				Match m;
+				if ((m = HtmlClosing.Match(_input, _index)).Success)
+				{
+					var name = m.Groups[1].Value.ToLowerInvariant();
+					name = "html:" + name;
+					var topName = _stack.Peek().Name;
+					if (name == topName)
+					{
+						FlushText();
+						_index += m.Length;
+						_stack.Pop();
+						_didHtml = true;
+						continue;
+					}
+					else
+					{
+						// closing didn't match opening?  OK, process as raw text
+					}
+				}
+				else if (ChildrenExpected())
+				{
+					if ((m = HtmlOpening.Match(_input, _index)).Success)
+					{
+						var name = m.Groups[1].Value.ToLowerInvariant();
+						if (KnownNonEmptyHtmlTags.Contains(name))
+						{
+							var e = new Element { Name = "html:" + name };
+							FlushText();
+							_index += m.Length;
+							Push(e);
+							_didHtml = true;
+							continue;
+						}
+						else
+						{
+							// tag not recognized?  Might be a void tag, or raw text
+						}
+					}
+
+					if ((m = HtmlVoid.Match(_input, _index)).Success)
+					{
+						var name = m.Groups[1].Value.ToLowerInvariant();
+						if (name == "br" || name == "hr")
+						{
+							var e = new Element { Name = "html:" + name };
+							FlushText();
+							_index += m.Length;
+							Push(e);
+							_stack.Pop();
+							_didHtml = true;
+							continue;
+						}
+						else
+						{
+							// tag not recognized?  OK, process as raw text
+						}
+					}
+				}
+				else
+				{
+					// '<' but not followed by a valid tag?  OK, process as raw text
+				}
+			}
+
+			_currentText.Append(c);
+		}
+
+		FlushText();
+	}
+
+	[GeneratedRegex("""
+		\G
+		# Tag name
+		(
+			[^\p{C}\[\]=\/]+
+		)
+		# Optional attribute value
+		([= ]
+			(
+				(
+					(?'open'\[)
+						| [^\p{C}\[\]]
+						| (?'close-open'\])
+				)+
+			)
+			(?(open)(?!))
+		)?
+		# Closing `]`
+		\]
+		""", RegexOptions.IgnorePatternWhitespace)]
+	private static partial Regex OpeningTagRegex();
+
+	[GeneratedRegex("""
+		\G
+		# Slash before tag name
+		\/
+		# Tag name
+		(
+			[^\p{C}\[\]=\/]+
+		)
+		# Closing `]`
+		\]
+		""", RegexOptions.IgnorePatternWhitespace)]
+	private static partial Regex ClosingTagRegex();
+
+	[GeneratedRegex("""
+		\G
+		https?:\/\/
+		(
+			[A-Za-z0-9\-._~!$&'()*+,;=:@\/]
+			|
+			%[A-Fa-f0-9]{2}
+		)+
+		(
+			\?
+			(
+				[A-Za-z0-9\-._~!$&'()*+,;=:@\/]
+				|
+				%[A-Fa-f0-9]{2}
+			)+
+		)?
+		(
+			\#
+			(
+				[A-Za-z0-9\-._~!$&'()*+,;=:@\/]
+				|
+				%[A-Fa-f0-9]{2}
+			)+
+		)?
+		""", RegexOptions.IgnorePatternWhitespace)]
+	private static partial Regex UrlRegex();
+
+	[GeneratedRegex("\\G[ \t]*\r?\n")]
+	private static partial Regex BlockTrimAfterEnteringRegex();
+
+	[GeneratedRegex("\\G[ \t]*\r?\n?")]
+	private static partial Regex BlockTrimAfterLeavingRegex();
+
+	[GeneratedRegex(@"\G\s*([a-zA-Z]+)\s*>")]
+	private static partial Regex HtmlOpeningRegex();
+
+	[GeneratedRegex(@"\G\s*\/\s*([a-zA-Z]+)\s*>")]
+	private static partial Regex HtmlClosingRegex();
+
+	[GeneratedRegex(@"\G\s*([a-zA-Z]+)\s*\/?\s*>")]
+	private static partial Regex HtmlVoidRegex();
+}

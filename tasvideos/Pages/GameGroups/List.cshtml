@@ -1,0 +1,18 @@
+﻿@page
+@model ListModel
+@{
+	ViewData.SetTitle("Game Groups");
+}
+<top-button-bar>
+	<add-link permission="CatalogMovies" asp-page="Edit"></add-link>
+	<a asp-page="/Games/List" class="btn btn-secondary">Games</a>
+</top-button-bar>
+
+<ul>
+	@foreach(var group in Model.GameGroups.OrderBy(gg => gg.Name))
+	{
+		<li>
+			<a asp-page="Index" asp-route-id="@group.Id">@group.Name</a>
+		</li>
+	}
+</ul>

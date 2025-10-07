@@ -1,0 +1,23 @@
+﻿@page
+@model ListModel
+@{
+	ViewData.SetTitle("Role List");
+}
+
+<p>These are a list of the site roles</p>
+<p condition="User.IsLoggedIn()">See the <a asp-page="/Permissions/Index">Permission List</a> for details on individual permissions</p>
+<div class="card mb-2">
+	<card-body>
+		@foreach (var item in Model.Roles.OrderBy(m => m.Permissions.Count).Select(r => r.Name))
+		{
+			<li><a href="#@item">@item</a></li>
+		}
+	</card-body>
+</div>
+
+@foreach (var role in Model.Roles.OrderBy(m => m.Permissions.Count))
+{
+	<partial name="_Role" model="role" />
+}
+
+<a asp-page="AddEdit" class="mt-2 btn btn-primary" permission="EditRoles">Create New Role</a>

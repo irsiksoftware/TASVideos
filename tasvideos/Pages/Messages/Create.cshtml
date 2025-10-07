@@ -1,0 +1,55 @@
+﻿@page
+@model CreateModel
+@{
+	ViewData.SetTitle("Create Private Message");
+}
+
+<div condition="Model.IsReply" class="card mb-3">
+	<div class="card-header">
+		<button type="button" id="quote-btn" class="float-end btn btn-sm btn-secondary">Quote</button>
+		@Model.ReplyingTo!.Subject
+	</div>
+	<div class="card-body">
+		<div class="card-title">
+			@Model.ReplyingTo.FromUserName <span class="fa fa-arrow-right"></span> @Model.ReplyingTo.ToUserName
+		</div>
+		<div class="card-text" id="replying-to-text">@Model.ReplyingTo.Text</div>
+	</div>
+</div>
+
+<form client-side-validation="true" method="post" id="create-form">
+	<row>
+		<fieldset class="col-lg-6">
+			<label asp-for="Subject"></label>
+			<input asp-for="Subject" autocomplete="off" />
+			<span asp-validation-for="Subject"></span>
+		</fieldset>
+		<fieldset class="col-lg-6">
+			<div id="user-form-group" class="mb-2">
+				<label asp-for="ToUser"></label>
+				<input asp-for="ToUser" user-search="true" data-id="to-user" placeholder="Enter a UserName"/>
+				<span asp-validation-for="ToUser"></span>
+			</div>
+			<label for="group-select">To Group</label>
+			<select asp-for="ToUser" id="group-select" asp-items="@Model.AvailableGroupRoles"></select>
+		</fieldset>
+	</row>
+	<post-helper></post-helper>
+	<row>
+		<fieldset class="col-12">
+			<label asp-for="MessageBody"></label>
+			<textarea asp-for="MessageBody" data-id="forum-edit" rows="20"></textarea>
+			<span asp-validation-for="MessageBody"></span>
+		</fieldset>
+	</row>
+	<form-button-bar>
+		<preview-button></preview-button>
+		<submit-button disable="@string.IsNullOrWhiteSpace(Model.ToUser)"><i class="fa fa-save"></i> Send</submit-button>
+		<cancel-link asp-page="Inbox"></cancel-link>
+	</form-button-bar>
+</form>
+<forum-preview></forum-preview>
+
+@section Scripts {
+	<script src="/js/messages-create.js"></script>
+}

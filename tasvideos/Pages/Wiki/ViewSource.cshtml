@@ -1,0 +1,14 @@
+@page
+@model ViewSourceModel
+@{
+	ViewData.SetTitle("View Page Source");
+}
+
+<top-button-bar>
+	<back-link href="/@Model.WikiPage.PageName" name-override="Back to Page"></back-link>
+</top-button-bar>
+<div class="mb-2">
+	Revision @Model.WikiPage.Revision @(Model.WikiPage.IsCurrent() ? "(current)" : "(old)") <br />
+	Edited by @(Model.WikiPage.AuthorName ?? "Unknown") <timezone-convert asp-for="@Model.WikiPage.CreateTimestamp" in-line="true" />
+</div>
+<pre>@Model.WikiPage.Markup.ReplaceLineEndings("\n")</pre>

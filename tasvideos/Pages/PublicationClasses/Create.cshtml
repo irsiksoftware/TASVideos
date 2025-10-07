@@ -1,0 +1,33 @@
+﻿@page
+@model CreateModel
+@{
+	ViewData.SetTitle("Creating a new PublicationClass");
+}
+
+<form client-side-validation="true" method="post">
+	<row>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="PublicationClass.Name"></label>
+				<input asp-for="PublicationClass.Name" />
+				<span asp-validation-for="PublicationClass.Name"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="PublicationClass.Link"></label>
+				<input asp-for="PublicationClass.Link" />
+				<span asp-validation-for="PublicationClass.Link"></span>
+			</fieldset>
+		</column>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="PublicationClass.IconPath"></label>
+				<input asp-for="PublicationClass.IconPath" />
+				<span asp-validation-for="PublicationClass.IconPath"></span>
+			</fieldset>
+		</column>
+	</row>
+	<form-button-bar>
+		<submit-button edit="false"></submit-button>
+		<cancel-link asp-page="Index"></cancel-link>
+	</form-button-bar>
+</form>

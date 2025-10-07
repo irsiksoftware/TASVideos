@@ -1,0 +1,40 @@
+@page "{handler?}"
+@model EditModel
+@{
+	ViewData.SetTitle($"Editing {Model.Path}");
+}
+
+<form client-side-validation="true" method="post">
+	<input type="hidden" asp-for="EditStart" />
+	<input type="hidden" asp-for="OriginalMarkup" data-diff="left" />
+	<wiki-edit-helper class="mt-2"></wiki-edit-helper>
+	<fieldset>
+		<wiki-textarea asp-for="Markup" rows="20" data-diff="right"></wiki-textarea>
+		<span asp-validation-for="Markup"></span>
+		@await Html.RenderWiki(SystemWiki.WikiEditHelp)
+	</fieldset>
+	<fieldset class="col-12">
+		<label asp-for="EditComments"></label>
+		<div class="input-group">
+			<input asp-for="EditComments" autocomplete="off" />
+			<div class="input-group-text">
+				<minor-edit></minor-edit>
+			</div>
+		</div>
+		<span>Please enter a descriptive summary of your change. Leaving this blank is discouraged.</span><br />
+		<span asp-validation-for="EditComments"></span>
+	</fieldset>
+	<form-button-bar>
+		<preview-button></preview-button>
+		<submit-button></submit-button>
+		<cancel-link href="/@Model.Path"></cancel-link>
+	</form-button-bar>
+	<div class="text-center alert-info mt-2" role="alert">
+		<label class="alert-info">
+			@await Html.RenderWiki(SystemWiki.WikiEditNote)
+		</label>
+	</div>
+</form>
+
+<diff-panel></diff-panel>
+<wiki-preview preview-path="@("/Wiki/Preview?Id=" + Model.Path)"></wiki-preview>

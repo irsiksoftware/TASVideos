@@ -1,0 +1,11 @@
+﻿@page
+@{
+	ViewData.IgnorePageTitle();
+}
+
+<cache enabled="@(!User.IsLoggedIn())" expires-after="@Durations.FiveMinutes">
+	@await Html.RenderWiki(SystemWiki.FrontPage)
+</cache>
+<edit-link condition="@User.CanEditWiki(SystemWiki.FrontPage)"
+   asp-page="/Wiki/Edit" asp-route-path="System/FrontPage" class="btn-sm">
+</edit-link>

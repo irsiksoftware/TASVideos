@@ -1,0 +1,20 @@
+﻿@page "{id}"
+@model UnpublishModel
+@{
+	ViewData.SetTitle($"Unpublish Movie #{Model.Id}");
+}
+
+<form method="post">
+	<danger-alert>This action cannot be done, and should only be done if there was a major mistake in publication</danger-alert>
+	<row>
+		<column md="6">
+			<label asp-for="Reason"></label>
+			<input asp-for="Reason" />
+			<span asp-validation-for="Reason"></span>
+		</column>
+	</row>
+	<form-button-bar>
+		<submit-button btn-class-override="btn-danger"><i class="fa fa-remove"></i> Unpublish</submit-button>
+		<cancel-link asp-page="/Publications/View" asp-route-id="@Model.Id"></cancel-link>
+	</form-button-bar>
+</form>

@@ -1,0 +1,70 @@
+﻿@page
+@addTagHelper *, AspNetCore.ReCaptcha
+@model RegisterModel
+@{
+	ViewData.SetTitle("Create a new account");
+}
+
+<form method="post" id="register-form">
+	<row>
+		<column md="6">
+			<fieldset>
+				<label asp-for="UserName"></label>
+				<input asp-for="UserName" autocomplete="username" />
+				<span asp-validation-for="UserName"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Email"></label>
+				<input asp-for="Email" autocomplete="off" />
+				<span asp-validation-for="Email"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Password"></label>
+				<input asp-for="Password" class="form-control" autocomplete="new-password" maxlength="524288" />
+				<span asp-validation-for="Password"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="ConfirmPassword"></label>
+				<input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" maxlength="524288" />
+				<span asp-validation-for="ConfirmPassword"></span>
+			</fieldset>
+		</column>
+		<column md="6">
+			<fieldset>
+				<label asp-for="TimeZone"></label>
+				<timezone-picker asp-for="TimeZone" />
+				<span asp-validation-for="TimeZone"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Location"></label>
+				<select asp-for="Location" asp-items="@RegisterModel.AvailableLocations"></select>
+				<span asp-validation-for="Location"></span>
+			</fieldset>
+			<fieldset class="mt-3">
+				<div class="form-check">
+					<label asp-for="Coppa" class="form-check-label">By checking the box below, you certify you are 13 years of age or older</label>
+					<input asp-for="Coppa" type="checkbox" class="form-check-input"/>
+				</div>
+				<span asp-validation-for="Coppa"></span>
+			</fieldset>
+			<fieldset>
+				Also make sure you've read the <a href="/SiteRules">Site Rules</a>.<br/>
+				Your data will be stored according to our <a href="/System/PrivacyPolicy">Privacy Policy</a>.
+			</fieldset>
+		</column>
+	</row>
+	<div class="text-center">
+		<environment exclude="Development">
+			<recaptcha class-name="btn btn-primary" callback="onSubmit" text="Register"/>
+		</environment>
+		<environment include="Development">
+			<submit-button>Register</submit-button>
+		</environment>
+	</div>
+</form>
+
+@section Scripts {
+	@*For manual implementation of Google's ReCaptcha scripts, will require embedding site's public key.*@
+	<script src="https://www.google.com/recaptcha/api.js"></script>
+	<script src="/js/account-register.js"></script>
+}

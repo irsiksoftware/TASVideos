@@ -1,0 +1,51 @@
+@inject IPrivateMessageService PrivateMessages
+@inject ISignInManager SignInManager
+@{
+	bool isSignedIn = SignInManager.IsSignedIn(User);
+	int notificationCount = 0;
+
+	if (isSignedIn)
+	{
+		notificationCount = await PrivateMessages.GetUnreadMessageCount(User.GetUserId());
+	}
+}
+<navbar class="flex-wrap justify-content-end">
+	@if (isSignedIn)
+	{
+		<nav-item activate="Messages">
+			<a class="nav-link text-nowrap" asp-page="/Messages/Inbox">
+				<span condition="notificationCount > 0" class="badge bg-danger text-white">@notificationCount</span>
+				<span condition="notificationCount > 0" class="sr-only">unread messages</span>
+				<span class="fa fa-envelope"></span>
+			</a>
+		</nav-item>
+	}
+	<nav-dropdown activate='<i class="fa fa-adjust"></i>'>
+		<button class="dropdown-item" data-theme="dark"><i class="fa-regular fa-moon"></i> Dark</button>
+		<button class="dropdown-item" data-theme="light"><i class="fa-regular fa-sun"></i> Light</button>
+		<button class="dropdown-item" data-theme="auto"><i class="fa-solid fa-left-right"></i> Auto</button>
+	</nav-dropdown>
+	@if (isSignedIn)
+	{
+		<nav-item activate="Profile">
+			<a class="nav-link" asp-page="/Profile/Index" title="Manage">
+				<i class="fa fa-user d-inline"></i>&nbsp;@User.Name()
+			</a>
+		</nav-item>
+		<nav-item>
+			<form asp-page="/Account/Logout" method="post" asp-antiforgery="false">
+				<submit-button btn-class-override="btn-link" class="navbar-btn nav-link text-nowrap fs-6 border-0"><i class="fa fa-sign-out"></i> Log out</submit-button>
+			</form>
+		</nav-item>
+	}
+	else
+	{
+		<nav-item activate="Register">
+			<a class="nav-link" asp-page="/Account/Register">Register</a>
+		</nav-item>
+		<nav-item activate="Login">
+			<a class="nav-link text-nowrap" asp-page="/Account/Login" asp-route-returnUrl="@Context.CurrentPathToReturnUrl()"><i class="fa fa-sign-in"></i> Log in</a>
+		</nav-item>
+	}
+	<partial name="_Search" />
+</navbar>

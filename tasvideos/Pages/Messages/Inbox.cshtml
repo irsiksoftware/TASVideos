@@ -1,0 +1,49 @@
+﻿@page "{id?}/{handler?}"
+@model InboxModel
+@{
+	ViewData.SetTitle($"Private messages for {User.Name()}");
+}
+
+<top-button-bar>
+	<div class="heading">
+		<a permission="SendPrivateMessages" class="btn btn-primary" asp-page="Create">
+			<span class="fa fa-envelope"></span> Create
+		</a>
+	</div>
+	<a class="btn btn-secondary" asp-page="Savebox">
+		<span class="fa fa-check-square"></span> Savebox
+	</a>
+	<a class="btn btn-secondary" asp-page="Sentbox">
+		<span class="fa fa-arrow-right"></span> Sentbox
+	</a>
+</top-button-bar>
+<standard-table>
+	<table-head columns="Subject,From,Date,Actions"></table-head>
+	@foreach (var entry in Model.Messages)
+	{
+		<tr>
+			<td>
+				<a asp-page="Index" asp-route-id="@entry.Id">
+					<span condition="!entry.IsRead" class="fa fa-envelope"></span>
+					<span condition="!entry.IsRead"><strong>@entry.Subject</strong></span>
+					<span condition="entry.IsRead">@entry.Subject</span>
+				</a>
+			</td>
+			<td>
+				<profile-link username="@entry.From"></profile-link>
+			</td>
+			<td><timezone-convert asp-for="@entry.Date" /></td>
+			<td-action-column>
+				<form method="post" class="d-inline-block" asp-page="Inbox" asp-page-handler="Save" asp-route-id="@entry.Id">
+					<submit-button class="btn-sm"></submit-button>
+				</form>
+				<delete-button
+					asp-href="/Messages/InBox/@entry.Id/Delete"
+					warning-message="Are you sure you want to remove this message?"
+					class="btn-sm"></delete-button>
+			</td-action-column>
+		</tr>
+	}
+</standard-table>
+<partial name="_Pager" model="Model.Messages" />
+

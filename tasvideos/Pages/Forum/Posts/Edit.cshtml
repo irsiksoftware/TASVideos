@@ -1,0 +1,82 @@
+﻿@page "{id}"
+@model EditModel
+@{
+	ViewData.SetTitle($"Editing Post in Topic: {Model.Post.TopicTitle}");
+	bool isUserEdit = Model.Post.PosterId == User.GetUserId();
+}
+
+@section PageTitle {
+	Editing Post in Topic: <a asp-page="/Forum/Topics/Index" asp-route-id="@Model.Post.TopicId">@Model.Post.TopicTitle</a>
+}
+<show-more max-height="0" show-text="Show previous posts" reverse condition="@Model.PreviousPosts.Any()" class="mb-2">
+	@foreach (var post in Model.PreviousPosts)
+	{
+		<partial name="_TopicMiniPost" model="post" />
+	}
+</show-more>
+
+<form client-side-validation="true" method="post">
+	<input type="hidden" asp-for="Post.EnableBbCode" />
+	<input type="hidden" asp-for="Post.EnableHtml" />
+	<input type="hidden" asp-for="Post.OriginalText" data-diff="left" />
+
+	<row>
+		<column condition="!Model.IsFirstPost" md="6">
+			<fieldset>
+				<label asp-for="Post.Subject"></label>
+				<input asp-for="Post.Subject" autocomplete="off"/>
+				<span asp-validation-for="Post.Subject"></span>
+			</fieldset>
+		</column>
+		<column condition="Model.IsFirstPost" md="6">
+			<fieldset>
+				<label asp-for="Post.TopicTitle"></label>
+				<input asp-for="Post.TopicTitle" autocomplete="off"/>
+				<span asp-validation-for="Post.TopicTitle"></span>
+			</fieldset>
+		</column>
+		<column md="4">
+			<fieldset>
+				<label asp-for="Post.Mood"></label>
+				<input condition="!isUserEdit" readonly asp-for="Post.Mood" />
+				<select condition="isUserEdit" asp-for="Post.Mood" data-id="avatar-dropdown" asp-items="@Model.Moods"></select>
+				<span asp-validation-for="Post.Mood"></span>
+			</fieldset>
+		</column>
+		<column md="2">
+			<mood-preview current-mood="@Model.Post.Mood" avatar="@Model.UserAvatars"></mood-preview>
+		</column>
+	</row>
+	<post-helper class="mt-2"></post-helper>
+	<fieldset>
+		<forum-textarea asp-for="Post.Text" data-diff="right" rows="20"></forum-textarea>
+		<span asp-validation-for="Post.Text"></span>
+	</fieldset>
+	<form-button-bar class="mb-2">
+		<preview-button></preview-button>
+		<submit-button></submit-button>
+		<cancel-link asp-page="/Forum/Topics/Index" asp-route-id="@Model.Post.TopicId"></cancel-link>
+		<minor-edit checked="Model.Post.PosterId == User.GetUserId()"></minor-edit>
+	</form-button-bar>
+</form>
+<div class="alert alert-light p-0">
+	<card>
+		<card-header>
+			<row>
+				<div class="col-4 border-end">
+					<h5>@Model.Post.PosterName</h5>
+				</div>
+				<div class="col-8 pt-0 pb-0">
+					<small>
+						Posted: <timezone-convert asp-for="@Model.Post.CreateTimestamp" />
+						<span condition="!Model.IsFirstPost && !string.IsNullOrWhiteSpace(Model.Post.Subject)">Post subject: @Model.Post.Subject</span>
+					</small>
+				</div>
+			</row>
+		</card-header>
+		<card-body>
+			<diff-panel></diff-panel>
+		</card-body>
+	</card>
+</div>
+<forum-preview></forum-preview>

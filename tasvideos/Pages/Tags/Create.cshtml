@@ -1,0 +1,28 @@
+﻿@page
+@model CreateModel
+@{
+	ViewData.SetTitle("Creating a new Tag");
+}
+
+<form client-side-validation="true" method="post">
+	<row>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Tag.Code"></label>
+				<input asp-for="Tag.Code" />
+				<span asp-validation-for="Tag.Code"></span>
+			</fieldset>
+		</column>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Tag.DisplayName"></label>
+				<input asp-for="Tag.DisplayName" />
+				<span asp-validation-for="Tag.DisplayName"></span>
+			</fieldset>
+		</column>
+	</row>
+	<form-button-bar>
+		<submit-button edit="false"></submit-button>
+		<cancel-link asp-page="Index"></cancel-link>
+	</form-button-bar>
+</form>

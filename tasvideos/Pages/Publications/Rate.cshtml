@@ -1,0 +1,54 @@
+﻿@page "{id}"
+@model RateModel
+@{
+	ViewData.SetTitle($"Movie #{Model.Id} - {Model.Title}");
+}
+<form method="post">
+	<input type="hidden" asp-for="Title" />
+	<row>
+		<column class="text-center text-md-start">
+			<fieldset>
+				<span class="fs-4">Rating</span>
+				<span class="text-nowrap">
+					( <input type="checkbox" id="unrated" />
+					<label for="unrated">Unrated</label> )
+				</span>
+				<br />
+				<input asp-for="Rating" class="fs-4 d-inline-block" style="width:4em;" min="0" max="10" value="@Model.Rating" step="0.1" />
+				<input id="entertainmentSlider" type="range" class="form-range mw-100 h-auto" style="width:15rem;" min="0" max="10" value="@Model.Rating" step="0.1" />
+			</fieldset>
+		</column>
+	</row>
+	<form-button-bar>
+		<submit-button disable="@Model.Rating is null" id="submit-btn"><span class="fa fa-save"></span> Rate</submit-button>
+		<back-link asp-page="/Publications/View" asp-route-id="@Model.Id"></back-link>
+	</form-button-bar>
+</form>
+<hr />
+<h4>Rating Details</h4>
+@if (Model.AllRatings.Any())
+{
+	<label>@Model.AllRatings.Count total ratings</label>
+	<br />
+	<label>Rating Average: @Model.OverallRating.ToOverallRatingString()</label>
+	<standard-table>
+		<table-head columns="User,Rating"></table-head>
+		@foreach (var ratings in Model.VisibleRatings.OrderBy(r => r.UserName))
+		{
+			<tr @Html.Raw(!ratings.IsPublic ? "style=\"opacity: 0.50\"" : "")>
+				<td>@(ratings.IsPublic ? "" : "*") @ratings.UserName</td>
+				<td>@ratings.Rating</td>
+			</tr>
+		}
+	</standard-table>
+}
+else
+{
+	<warning-alert>No Ratings</warning-alert>
+}
+
+@await Html.RenderWiki(SystemWiki.MovieRatingGuidelines)
+
+@section Scripts {
+	<script src="/js/publications-rate.js"></script>
+}

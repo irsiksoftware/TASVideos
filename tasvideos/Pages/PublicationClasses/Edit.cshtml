@@ -1,0 +1,41 @@
+﻿@page "{id}/{handler?}"
+@model EditModel
+@{
+	ViewData.SetTitle($"Editing PublicationClass: {Model.PublicationClass.Name}");
+}
+
+<top-button-bar>
+	<delete-button condition="!Model.InUse"
+				   asp-href="/PublicationClasses/Edit/@(Model.PublicationClass.Id)/Delete"
+				   warning-message="Are you sure you want to remove this Publication Class?"></delete-button>
+	<a class="btn btn-secondary" condition="Model.InUse" asp-page="/Publications/Index" asp-route-query="@Model.PublicationClass.Name">
+		Publication Class in Use
+	</a>
+</top-button-bar>
+<form client-side-validation="true" method="post">
+	<row>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="PublicationClass.Name"></label>
+				<input asp-for="PublicationClass.Name" />
+				<span asp-validation-for="PublicationClass.Name"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="PublicationClass.Link"></label>
+				<input asp-for="PublicationClass.Link" />
+				<span asp-validation-for="PublicationClass.Link"></span>
+			</fieldset>
+		</column>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="PublicationClass.IconPath"></label>
+				<input asp-for="PublicationClass.IconPath" />
+				<span asp-validation-for="PublicationClass.IconPath"></span>
+			</fieldset>
+		</column>
+	</row>
+	<form-button-bar>
+		<submit-button></submit-button>
+		<cancel-link asp-page="Index"></cancel-link>
+	</form-button-bar>
+</form>

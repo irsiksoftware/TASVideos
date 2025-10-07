@@ -1,0 +1,24 @@
+﻿@page
+@model RenderDeletedModel
+@{
+	ViewData.SetTitle($"Viewing Deleted Page: {Model.WikiPages.First().PageName}");
+}
+
+<standard-table>
+	<table-head columns="Revision,Is Current,Author,Revision,Minor Edit"></table-head>
+	@foreach (var revision in Model.WikiPages.OrderByDescending(wp => wp.Revision))
+	{
+		<tr>
+			<td>@revision.Revision</td>
+			<td>@revision.IsCurrent().ToYesNo()</td>
+			<td>@revision.Author!.UserName</td>
+			<td>@revision.RevisionMessage</td>
+			<td>@revision.MinorEdit</td>
+		</tr>
+	}
+</standard-table>
+
+<h4>Markup</h4>
+<info-alert>
+	@Model.WikiPages.MaxBy(f => f.Revision)!.Markup
+</info-alert>

@@ -1,0 +1,32 @@
+﻿@page
+@model CreateModel
+@{
+	ViewData.SetTitle("Creating a new Game System");
+}
+
+<form client-side-validation="true" method="post">
+	<row>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="System.Id"></label>
+				<input asp-for="System.Id" />
+				<span asp-validation-for="System.Id"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="System.Code"></label>
+				<input asp-for="System.Code" />
+				<span asp-validation-for="System.Code"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="System.DisplayName"></label>
+				<input asp-for="System.DisplayName" />
+				<span asp-validation-for="System.DisplayName"></span>
+			</fieldset>
+		</column>
+	</row>
+	<form-button-bar>
+		<submit-button edit="false"></submit-button>
+		<submit-button></submit-button>
+		<cancel-link asp-page="Index"></cancel-link>
+	</form-button-bar>
+</form>

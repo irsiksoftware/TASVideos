@@ -1,0 +1,22 @@
+﻿@page "{id}"
+@model EditClassModel
+@{
+	ViewData.SetTitle($"Edit PublicationClass for {Model.Title}");
+}
+
+<form client-side-validation="true" method="post">
+	<input type="hidden" asp-for="Title" />
+	<row>
+		<div class="col-lg-4 col-sm-6">
+			<fieldset>
+				<label asp-for="PublicationClassId"></label>
+				<select asp-for="PublicationClassId" asp-items="@Model.AvailableClasses"></select>
+				<span asp-validation-for="PublicationClassId"></span>
+			</fieldset>
+		</div>
+	</row>
+	<form-button-bar>
+		<submit-button></submit-button>
+		<cancel-link asp-page="Edit" asp-route-id="@Model.Id"></cancel-link>
+	</form-button-bar>
+</form>

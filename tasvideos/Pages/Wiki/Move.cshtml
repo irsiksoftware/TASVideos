@@ -1,0 +1,27 @@
+@page
+@model MoveModel
+@{
+	ViewData.SetTitle($"Moving: {Model.OriginalPageName}");
+}
+
+<form client-side-validation="true" method="post">
+	<input type="hidden" asp-for="OriginalPageName" />
+	<row>
+		<column lg="6">
+			<fieldset>
+				<label>Original Name</label>
+				<label class="form-control">@Model.OriginalPageName</label>
+			</fieldset>
+			<fieldset>
+				<label asp-for="DestinationPageName"></label>
+				<input asp-for="DestinationPageName" />
+				<span asp-validation-for="DestinationPageName"></span>
+			</fieldset>
+			<form-button-bar>
+				<submit-button><i class="fa fa-save"></i> Move</submit-button>
+				<cancel-link href="/@Model.OriginalPageName"></cancel-link>
+			</form-button-bar>
+		</column>
+	</row>
+</form>
+

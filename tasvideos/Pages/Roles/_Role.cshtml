@@ -1,0 +1,65 @@
+﻿@model TASVideos.Pages.Roles.ListModel.RoleDisplay
+@{
+	var groupedPermissions = Model.Permissions.GroupBy(p => p.Group());
+}
+<card class="mb-2">
+	<card-body>
+		<h5 id="@Model.Name" class="card-title">@Model.Name</h5>
+		<row>
+			<column md="6">
+				<div permission="EditRoles">
+					<edit-link asp-page="AddEdit" asp-route-id="@Model.Id"></edit-link>
+					<a asp-page="AddEdit" asp-route-copyFrom="@Model.Id" class="btn btn-secondary">
+						<i class="fa fa-plus"></i> Copy From
+					</a>
+				</div>
+				<span>@Model.Description</span>
+				<div condition="Model.IsDefault">
+					<small>
+						* This role is added to users by default when they register
+					</small>
+				</div>
+			</column>
+			<div class="col-lg-3 col-md-6">
+				<strong><a asp-page="/Permissions/Index">Permissions</a></strong>
+				<br />
+				@foreach (var permissionGroup in groupedPermissions)
+				{
+					<div class="ms-md-0 ms-sm-4">
+						@permissionGroup.Key
+						<ul>
+							@foreach (var permission in permissionGroup.OrderBy(g => g.ToString()))
+							{
+								<li>@permission.ToString().SplitCamelCase()</li>
+							}
+						</ul>
+					</div>
+				}
+			</div>
+			<div condition="@Model.Links.Any()" class="col-lg-3 col-md-12">
+				<strong>Related Links:</strong><br />
+				@foreach (var link in Model.Links)
+				{
+					<div class="ms-lg-0 ms-sm-4"><a href="/@link">@link</a></div>
+				}
+			</div>
+		</row>
+	</card-body>
+	<card-footer condition="!Model.IsDefault">
+		<span class="font-weight-bold">Users with this role</span>
+		<div condition="!Model.Users.Any()">
+			<label class="fst-italic">No users currently have this role.</label>
+		</div>
+		<div condition="Model.Users.Count > 100">
+			<i>@Model.Users.Count Users (too many to display)</i>
+		</div>
+		<div condition="Model.Users.Any() && Model.Users.Count <= 100">
+			@foreach (var user in Model.Users)
+			{
+				<span class="me-4 mb-4 d-inline-block">
+					<profile-link username="@user"></profile-link>
+				</span>
+			}
+		</div>
+	</card-footer>
+</card>

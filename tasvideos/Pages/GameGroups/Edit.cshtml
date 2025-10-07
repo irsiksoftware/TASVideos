@@ -1,0 +1,48 @@
+@page "{id?}"
+@model EditModel
+@{
+	ViewData.SetTitle(Model.Id.HasValue
+		? $"Editing Game Group #{Model.Id} {Model.Name}"
+		: "Create a new Game Group entry");
+}
+<top-button-bar>
+	<delete-button condition="@Model.CanDelete" asp-href="/GameGroups/Edit/@(Model.Id ?? 0)?handler=Delete"></delete-button>
+</top-button-bar>
+<form client-side-validation="true" method="post">
+	<row>
+		<column md="6">
+			<fieldset>
+				<label asp-for="Name"></label>
+				<input asp-for="Name" />
+				<span asp-validation-for="Name"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Abbreviation"></label>
+				<div class="input-group">
+					<input asp-for="Abbreviation" />
+					<a asp-page="/Wiki/Referrers"
+					   asp-route-path="GameGroups/@Model.Abbreviation"
+					   asp-route-returnurl="@HttpContext.CurrentPathToReturnUrl()"
+					   class="btn btn-primary">
+						Referrers
+					</a>
+				</div>
+				<span asp-validation-for="Abbreviation"></span>
+			</fieldset>
+			<fieldset>
+				<wiki-edit-helper></wiki-edit-helper>
+				<label asp-for="Description"></label>
+				<wiki-textarea asp-for="Description" rows="4"></wiki-textarea>
+				<span asp-validation-for="Description"></span>
+				@await Html.RenderWiki(SystemWiki.WikiEditHelp)
+			</fieldset>
+		</column>
+	</row>
+	<form-button-bar>
+		<preview-button></preview-button>
+		<submit-button edit="@Model.Id.HasValue"></submit-button>
+		<cancel-link asp-page="@(Model.Id.HasValue ? "Index" : "List")" asp-route-id="@Model.Id"></cancel-link>
+		<minor-edit></minor-edit>
+	</form-button-bar>
+</form>
+<wiki-preview></wiki-preview>

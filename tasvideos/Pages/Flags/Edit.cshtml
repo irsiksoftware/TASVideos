@@ -1,0 +1,57 @@
+﻿@page "{id}/{handler?}"
+@model EditModel
+@{
+	ViewData.SetTitle($"Editing Flag: {Model.Flag.Token}");
+}
+
+<top-button-bar>
+	<delete-button condition="!Model.InUse"
+			asp-href="/Flags/Edit/@(Model.Flag.Id)/Delete"
+			warning-message="Are you sure you want to remove this flag?"></delete-button>
+	<a class="btn btn-secondary" condition="Model.InUse" asp-page="/Publications/Index" asp-route-query="@Model.Flag.Token">
+		Flag in Use
+	</a>
+</top-button-bar>
+
+<form client-side-validation="true" method="post">
+	<row>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Flag.Name"></label>
+				<input asp-for="Flag.Name" />
+				<span asp-validation-for="Flag.Name"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Flag.IconPath"></label>
+				<input asp-for="Flag.IconPath" />
+				<span asp-validation-for="Flag.IconPath"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Flag.LinkPath"></label>
+				<input asp-for="Flag.LinkPath" />
+				<span asp-validation-for="Flag.LinkPath"></span>
+			</fieldset>
+		</column>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Flag.Token"></label>
+				<input asp-for="Flag.Token" />
+				<span asp-validation-for="Flag.Token"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Flag.PermissionRestriction"></label>
+				<select asp-for="Flag.PermissionRestriction" asp-items="Model.AvailablePermissions.WithDefaultEntry()"></select>
+				<span asp-validation-for="Flag.PermissionRestriction"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Flag.Weight"></label>
+				<input asp-for="Flag.Weight" />
+				<span asp-validation-for="Flag.Weight"></span>
+			</fieldset>
+		</column>
+	</row>
+	<form-button-bar>
+		<submit-button></submit-button>
+		<cancel-link asp-page="Index"></cancel-link>
+	</form-button-bar>
+</form>

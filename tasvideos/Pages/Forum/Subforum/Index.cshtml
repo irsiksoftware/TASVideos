@@ -1,0 +1,92 @@
+﻿@page "{id}"
+@using TASVideos.Data.Entity.Forum
+@model IndexModel
+@{
+	ViewData.SetTitle($"{Model.Forum.Name} - Subforum");
+}
+
+@section PageTitle {
+	<nav aria-label="breadcrumb">
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a asp-page="/Forum/Index">Forum</a></li>
+			<li class="breadcrumb-item active" aria-current="page">@Model.Forum.Name</li>
+		</ol>
+	</nav>
+}
+<partial Name="_ForumHeader" />
+<top-button-bar>
+	<button type="button" id="mark-all-posts" class="btn btn-secondary btn-sm">
+		Mark all Posts as read
+	</button>
+	<a permission="CreateForumTopics" condition="Model.Forum.CanCreateTopics" asp-page="/Forum/Topics/Create" asp-route-forumId="@Model.Forum.Id" class="btn btn-primary btn-sm"><span class="fa fa-plus"></span> New Topic</a>
+	<edit-link permission="EditForums" asp-page="Edit" asp-route-id="@Model.Forum.Id" class="btn-sm"></edit-link>
+</top-button-bar>
+<div>
+	@Html.Raw(Model.Forum.Description)
+</div>
+<partial name="_Pager" model="Model.Topics" />
+<standard-table>
+	<sortable-table-head sorting="@Model.Search" model-type="typeof(IndexModel.ForumTopicEntry)" page-override="@HttpContext.Request.Path" action-column-name="Last Post" />
+	@foreach (var topic in Model.Topics)
+	{
+		<tr>
+			<td>
+				<span condition="@(topic.Type == ForumTopicType.Announcement)" class="fw-bold text-warning"><i class="fa fa-bullhorn"></i> Announcement: </span>
+				<span condition="@(topic.Type == ForumTopicType.Sticky)" class="fw-bold text-info"><i class="fa fa-sticky-note"></i> Sticky: </span>
+				<span condition="@topic.IsLocked" class="text-danger"><i class="fa fa-lock"></i></span>
+				@if (Model.ActivityTopics.TryGetValue(topic.Id, out var activityTopics))
+				{
+					<a class="text-decoration-none">
+						<i class="fa fa-file activity-topic d-none"
+						   data-topic-id="@topic.Id"
+						   data-activity-posts-created="@activityTopics.PostsCreated"
+						   data-activity-posts-edited="@activityTopics.PostsEdited"></i>
+					</a>
+				}
+				<a asp-page="/Forum/Topics/Index" asp-route-id="@topic.Id" class="fw-bold">@topic.Topics</a>
+				<div condition="topic.Votes is not null" class="text-body-tertiary float-end"><partial name="_VoteCounts" model="topic.Votes" /></div>
+				<div class="ms-2">
+					@{
+						var totalPages = (topic.Replies - 1) / ForumConstants.PostsPerPage + 1;
+						if (totalPages > 1)
+						{
+							for (int pageNumber = 1; pageNumber <= totalPages; pageNumber++)
+							{
+									<text>
+										<a asp-page="/Forum/Topics/Index"
+									   asp-route-id="@topic.Id"
+									   asp-route-CurrentPage="@pageNumber"
+									   asp-route-PageSize="@ForumConstants.PostsPerPage"
+									   asp-route-Sort="CreateTimestamp"
+									   class="btn btn-outline-primary btn-sm mt-1">
+											@pageNumber
+										</a>
+									</text>
+								if (totalPages > 5 && pageNumber == 2)
+								{
+									pageNumber = totalPages - 2;
+										<text><span>…</span></text>
+								}
+							}
+						}
+					}
+				</div>
+			</td>
+			<td class="d-none d-md-table-cell">@Math.Max(0, topic.Replies - 1)</td> @*Imported Submission Topics will have no replies and no original post*@
+			<td class="d-none d-md-table-cell"> <profile-link username="@topic.Author"></profile-link></td>
+			<td>
+				@if (topic.LastPost is not null)
+				{
+					<timezone-convert asp-for="@topic.LastPost.CreateTimestamp" /> <br />
+					<a href="/Forum/Posts/@topic.LastPost.Id">@topic.LastPost.PosterName <i class="fa fa-arrow-circle-right"></i></a>
+				}
+			</td>
+		</tr>
+	}
+</standard-table>
+<partial name="_Pager" model="Model.Topics" />
+
+<span id="serverUnixTime" class="d-none">@DateTime.UtcNow.UnixTimestamp()</span>
+@section Scripts {
+	<script src="/js/subforum-index.js"></script>
+}

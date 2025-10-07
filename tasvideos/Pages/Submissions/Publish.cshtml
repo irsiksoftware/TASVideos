@@ -1,0 +1,154 @@
+﻿@page "{id}"
+@model PublishModel
+@{
+	ViewData.SetTitle($"Publishing Submission {Model.Submission.Title}");
+}
+<card class="mb-3">
+	<card-body>
+		<div class="card-title">
+			<a class="btn btn-primary " asp-page="Catalog" asp-route-id="@Model.Id">Catalog</a>
+		</div>
+		<row>
+			<column lg="6">
+				<row>
+					<label class="col-sm-3" asp-for="Submission.PublicationClass"></label>
+					<span class="col-sm-9"><a href="/@Model.Submission.PublicationClass">@Model.Submission.PublicationClass</a></span>
+				</row>
+				<row>
+					<label class="col-sm-3" asp-for="Submission.System"></label>
+					<span class="col-sm-9">@Model.Submission.System</span>
+				</row>
+				<row>
+					<label class="col-sm-3" asp-for="Submission.Region"></label>
+					<span class="col-sm-9">@Model.Submission.Region</span>
+				</row>
+				<row>
+					<label class="col-sm-3" asp-for="Submission.EmulatorVersion"></label>
+					<span class="col-sm-9">@Model.Submission.EmulatorVersion</span>
+				</row>
+			</column>
+			<column lg="6">
+				<row>
+					<label class="col-sm-3" asp-for="Submission.Game"></label>
+					<span class="col-sm-9"><a asp-page="/Games/Index" asp-route-id="@Model.Submission.GameId">@Model.Submission.Game</a></span>
+				</row>
+				<row>
+					<label class="col-sm-3" asp-for="Submission.GameVersion"></label>
+					<span class="col-sm-9">
+						<a asp-page="/Games/Versions/Edit" asp-route-gameId="@Model.Submission.GameId" asp-route-id="@Model.Submission.VersionId">
+							@Model.Submission.GameVersion
+						</a>
+					</span>
+				</row>
+				<row>
+					<label class="col-sm-3" asp-for="Submission.Goal"></label>
+					<span class="col-sm-9">@Model.Submission.Goal</span>
+				</row>
+			</column>
+		</row>
+	</card-body>
+</card>
+<form client-side-validation="true" method="post" enctype="multipart/form-data">
+	<input type="hidden" asp-for="Submission.SystemId" />
+	<input type="hidden" asp-for="Id" />
+	<row>
+		<input type="hidden" asp-for="Submission.MovieExtension" />
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Submission.MovieToObsolete">Select movie to be obsoleted</label>
+				<input asp-for="Submission.MovieToObsolete" data-id="obsolete" />
+				<span asp-validation-for="Submission.MovieToObsolete"></span>
+				<span id="obsoleted-by"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Submission.OnlineWatchingUrl">Online-watching URL</label>
+				<input asp-for="Submission.OnlineWatchingUrl" />
+				<span asp-validation-for="Submission.OnlineWatchingUrl"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Submission.MirrorSiteUrl">Mirror site URL</label>
+				<input asp-for="Submission.MirrorSiteUrl" />
+				<span asp-validation-for="Submission.MirrorSiteUrl"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Submission.AlternateOnlineWatchingUrl">Alternative Online-watching URL (optional)</label>
+				<input asp-for="Submission.AlternateOnlineWatchingUrl" />
+				<span asp-validation-for="Submission.AlternateOnlineWatchingUrl"></span>
+				<label asp-for="Submission.AlternateOnlineWatchUrlName">Alternative Online-watching URL Display Name (optional)</label>
+				<input asp-for="Submission.AlternateOnlineWatchUrlName" />
+				<span asp-validation-for="Submission.AlternateOnlineWatchUrlName"></span>
+			</fieldset>
+		</column>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Submission.MovieFilename"></label>
+				<div class="input-group">
+					<input asp-for="Submission.MovieFilename" />
+					<div class="input-group-append">
+						<span class="input-group-text">
+							.@Model.Submission.MovieExtension
+						</span>
+					</div>
+				</div>
+				<div>Please follow the convention: xxxv#-yyy where xxx is author name, # is version and yyy is game name. Special characters such as "&amp;" and "/" and "." and spaces must not occur in the filename.</div>
+				<span asp-validation-for="Submission.MovieFilename"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Submission.Screenshot"></label>
+				<input asp-for="Submission.Screenshot" />
+				<span>
+					Must be JPEG or PNG
+					<br />
+					(Please read <a href="/PublisherGuidelines">Publisher guidelines</a> for guidelines regarding screenshot selection.)
+				</span>
+				<span asp-validation-for="Submission.Screenshot"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Submission.ScreenshotDescription">Description</label>
+				<input asp-for="Submission.ScreenshotDescription" />
+				<div>Caption, describe what happens in the screenshot</div>
+				<span asp-validation-for="Submission.ScreenshotDescription"></span>
+			</fieldset>
+		</column>
+	</row>
+	<hr />
+	<row>
+		<column lg="6">
+			<wiki-edit-helper></wiki-edit-helper>
+			<fieldset>
+				<label asp-for="Submission.MovieDescription"></label>
+				<wiki-textarea asp-for="Submission.MovieDescription" rows="10"></wiki-textarea>
+				<span asp-validation-for="Submission.MovieDescription"></span>
+			</fieldset>
+		</column>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Markup">Submission description (for quoting, reference, etc)</label>
+				<textarea readonly rows="10" asp-for="Markup"></textarea>
+			</fieldset>
+		</column>
+	</row>
+	<preview-button></preview-button>
+	<wiki-preview></wiki-preview>
+	<hr />
+	<fullrow>
+		<fieldset>
+			<label asp-for="Submission.SelectedFlags"></label>
+			<select asp-for="Submission.SelectedFlags" multiselect="true" asp-items="Model.AvailableFlags"></select>
+		</fieldset>
+		<fieldset>
+			<label asp-for="Submission.SelectedTags"></label>
+			<select asp-for="Submission.SelectedTags" data-id="tags" multiselect="true" asp-items="Model.AvailableTags"></select>
+		</fieldset>
+	</fullrow>
+	<hr />
+	@await Html.RenderWiki(SystemWiki.FilesEditingHelp)
+	<form-button-bar>
+		<submit-button><i class="fa fa-save"></i> Publish</submit-button>
+		<cancel-link asp-page="View" asp-route-id="@Model.Id"></cancel-link>
+	</form-button-bar>
+</form>
+
+@section Scripts {
+	<script src="/js/publish.js"></script>
+}

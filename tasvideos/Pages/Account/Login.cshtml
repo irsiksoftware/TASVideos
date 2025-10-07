@@ -1,0 +1,41 @@
+﻿@page
+@model LoginModel
+@{
+	ViewData.SetTitle("Log in");
+	ViewData.SetHeading("Use a TASVideos account to log in");
+}
+
+<row>
+	<column lg="4">
+		<form client-side-validation="true" method="post">
+			<fieldset>
+				<label asp-for="UserName"></label>
+				<input asp-for="UserName" autocomplete="username"/>
+				<span asp-validation-for="UserName"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Password"></label>
+				<input asp-for="Password" class="form-control" autocomplete="current-password"/>
+				<span asp-validation-for="Password"></span>
+			</fieldset>
+			<fieldset>
+				<div class="checkbox">
+					<label asp-for="RememberMe">
+						<input asp-for="RememberMe"/>
+						Remember me?
+					</label>
+				</div>
+			</fieldset>
+			<fieldset>
+				<submit-button>Log in</submit-button>
+			</fieldset>
+			<fieldset>
+				<p>
+					Please view our <a href="/System/PrivacyPolicy">Privacy Policy</a><br/>
+					<a asp-page="ForgotPassword">Forgot your password?</a><br/>
+					<a asp-page="Register" asp-route-returnurl="@HttpContext.CurrentPathToReturnUrl()">Register as a new user?</a><br/>
+				</p>
+			</fieldset>
+		</form>
+	</column>
+</row>

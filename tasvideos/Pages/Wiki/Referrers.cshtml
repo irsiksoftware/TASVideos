@@ -1,0 +1,25 @@
+@page
+@model ReferrersModel
+@{
+	string link = WikiHelper.ProcessLink(Model.Path ?? "");
+	ViewData.SetTitle($"Referrers for {link}");
+}
+
+<back-link href="/@link">Back</back-link>
+<br />
+<br />
+<label>Referrers (@Model.Referrals.Count Total)</label>
+
+<div condition="Model.Referrals.Any()">
+	@foreach (var referral in Model.Referrals)
+	{
+		<card class="my-2">
+			<card-header>
+				<a href="/@referral.Referrer">@referral.Referrer</a>
+			</card-header>
+			<div class="card-block">
+				<i>@referral.Excerpt</i>
+			</div>
+		</card>
+	}
+</div>

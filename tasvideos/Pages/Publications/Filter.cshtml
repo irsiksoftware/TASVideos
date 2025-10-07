@@ -1,0 +1,85 @@
+﻿@page
+@model FilterModel
+@{
+	ViewData.SetTitle("Tool-assisted movies filter");
+	var sortItems = UiDefaults.DefaultEntry.Concat(new List<SelectListItem>
+	{
+		new() { Text = "Newest to Oldest", Value = "U" },
+		new() { Text = "Oldest to Newest", Value = "V" },
+		new() { Text = "Shortest to Longest", Value = "S" },
+		new() { Text = "Longest to Shortest", Value = "L" },
+		new() { Text = "Highest Rating", Value = "Y" }
+	});
+}
+
+<form method="post">
+	<row>
+		<column md="4">
+			<fieldset>
+				<label asp-for="Search.Classes"></label>
+				<select asp-for="Search.Classes" data-id="classes" multiselect="true" asp-items="Model.Tokens.Classes.ToDropDown()"></select>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Search.Years"></label>
+				<select asp-for="Search.Years" data-id="years" multiselect="true" asp-items="Model.Tokens.Years.ToDropDown()"></select>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Search.Genres"></label>
+				<select asp-for="Search.Genres" data-id="genres" multiselect="true" asp-items="Model.Tokens.Genres.ToDropDown()"></select>
+			</fieldset>
+		</column>
+		<column md="4">
+			<fieldset>
+				<label asp-for="Search.Flags"></label>
+				<select asp-for="Search.Flags" data-id="flags" multiselect="true" asp-items="Model.AvailableFlags"></select>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Search.GameGroups"></label>
+				<select asp-for="Search.GameGroups" data-id="game-groups" multiselect="true" asp-items="Model.AvailableGameGroups"></select>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Search.Authors"></label>
+				<select asp-for="Search.Authors" data-id="authors" multiselect="true" asp-items="Model.AvailableAuthors"></select>
+			</fieldset>
+		</column>
+		<column md="4">
+			<fieldset>
+				<label asp-for="Search.SystemCodes">Platform</label>
+				<select asp-for="Search.SystemCodes" data-id="systems" multiselect="true" asp-items="Model.Tokens.SystemCodes.OrderBy(c => c).ToDropDown()"></select>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Search.Tags"></label>
+				<select asp-for="Search.Tags" data-id="tags" multiselect="true" asp-items="Model.AvailableTags"></select>
+			</fieldset>
+		</column>
+	</row>
+	<row>
+		<column md="4">
+			<fieldset>
+				<div class="form-check">
+					<input class="form-check-input" type="checkbox" asp-for="Search.ShowObsoleted">
+					<label class="form-check-label" asp-for="Search.ShowObsoleted"></label>
+				</div>
+			</fieldset>
+			<fieldset>
+				<div class="form-check">
+					<input class="form-check-input" type="checkbox" asp-for="Search.OnlyObsoleted">
+					<label class="form-check-label" asp-for="Search.OnlyObsoleted"></label>
+				</div>
+			</fieldset>
+		</column>
+		<column md="4">
+			<fieldset>
+				<label asp-for="Search.SortBy"></label>
+				<select asp-for="Search.SortBy" asp-items="sortItems"></select>
+			</fieldset>
+		</column>
+	</row>
+	<form-button-bar>
+		<submit-button id="filter-btn">Filter</submit-button>
+	</form-button-bar>
+</form>
+
+@section Scripts {
+	<script src="/js/publications-filter.js"></script>
+}

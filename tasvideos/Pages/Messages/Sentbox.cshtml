@@ -1,0 +1,31 @@
+﻿@page "{id?}/{handler?}"
+@model SentboxModel
+@{
+	ViewData.SetTitle($"Saved messages for {User.Name()}");
+}
+
+<back-link asp-page="Inbox" class="mb-1" name-override="Inbox"></back-link>
+<standard-table>
+	<table-head columns="Subject,To,Date,"></table-head>
+	@foreach (var entry in Model.SentBox)
+	{
+		<tr>
+			<td>
+				<span Condition="@(!entry.IsRead)" class="fa-regular fa-paper-plane" title="User has not yet read"></span>
+				<a asp-page="Index" asp-route-id="@entry.Id">@entry.Subject</a>
+			</td>
+			<td><profile-link username="@entry.To"></profile-link></td>
+			<td><timezone-convert asp-for="@entry.SendDate" /></td>
+			<td-action-column>
+				<form method="post" class="d-inline-block" asp-page="Inbox" asp-page-handler="Save" asp-route-id="@entry.Id">
+					<submit-button class="btn-sm"></submit-button>
+				</form>
+				<delete-button condition="!entry.IsRead"
+					asp-href="/Messages/Inbox/@entry.Id/Delete"
+					warning-message="Are you sure you want to remove this message?"
+					class="btn-sm"></delete-button>
+			</td-action-column>
+		</tr>
+	}
+</standard-table>
+<partial name="_Pager" model="Model.SentBox" />

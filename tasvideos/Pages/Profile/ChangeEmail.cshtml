@@ -1,0 +1,34 @@
+﻿@page
+@model ChangeEmailModel
+@{
+	ViewData.SetTitle("Email Change Request");
+	ViewData.AddActivePage(ProfileNavPages.ChangeEmail);
+}
+
+<form method="post">
+	<input type="hidden" asp-for="IsEmailConfirmed" />
+	<row>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="CurrentEmail"></label>
+				<div class="input-group">
+					<input asp-for="CurrentEmail" readonly />
+					<div condition="Model.IsEmailConfirmed" class="input-group-text">
+						<span class="fa fa-check-square text-success"></span>
+					</div>
+					<div condition="!Model.IsEmailConfirmed" class="input-group-text" aria-disabled="true" title="Email not confirmed">
+						<span class="fa fa-exclamation text-warning"></span>
+					</div>
+				</div>
+			</fieldset>
+			<fieldset>
+				<label asp-for="NewEmail"></label>
+				<input asp-for="NewEmail" />
+				<span asp-validation-for="NewEmail"></span>
+			</fieldset>
+			<form-button-bar>
+				<submit-button>Send Verification Email</submit-button>
+			</form-button-bar>
+		</column>
+	</row>
+</form>

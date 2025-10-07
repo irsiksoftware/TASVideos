@@ -1,0 +1,41 @@
+﻿@using TASVideos.Core.Services.Wiki
+@inject IWikiToMetaDescriptionRenderer wikiToMetaDescriptionRenderer
+@{
+	Layout = "_Layout.cshtml";
+	IWikiPage pageData = ViewData.GetWikiPage() ?? throw new InvalidOperationException("WikiPage not set");
+
+	TempData["ActiveTab"] = WikiHelper.IsGameResourcesPage(pageData.PageName)
+		? "Game Resources"
+		: pageData.PageName;
+
+	ViewData.SetMetaTags(new MetaTag
+	{
+		Title = pageData.PageName.SplitPathCamelCase(),
+		Description = await wikiToMetaDescriptionRenderer.RenderWikiForMetaDescription(pageData),
+	});
+}
+
+@section PageTitle {
+	<nav aria-label="breadcrumb">
+		<ol class="breadcrumb">
+			@{
+				var allPages = pageData.PageName.SplitPathCamelCase().Split(" / ");
+				for (int i = 0; i < allPages.Length - 1; i++)
+				{
+					<li class="breadcrumb-item"><a href="@('/' + string.Join('/', allPages.Take(i+1)).RemoveAllSpaces())">@allPages[i]</a></li>
+				}
+				<li class="breadcrumb-item active" aria-current="page">@allPages.Last()</li>
+			}
+		</ol>
+	</nav>
+}
+<partial name="_WikiLayoutHeader" model="pageData" />
+@RenderBody()
+<partial name="_WikiLayoutFooter" model="pageData" />
+
+@section Scripts {
+	@if (IsSectionDefined("Scripts"))
+	{
+		@await RenderSectionAsync("Scripts")
+	}
+}

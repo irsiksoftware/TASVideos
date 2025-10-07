@@ -1,0 +1,93 @@
+﻿@page "{handler?}"
+@using System.Diagnostics
+@using Microsoft.Extensions.Hosting
+@inject ApplicationDbContext Db
+@inject IHostEnvironment Env
+@inject ICacheService Cache
+@inject AppSettings Settings;
+@model IndexModel
+@{
+	ViewData.SetTitle("System Information");
+}
+
+@functions {
+	private static string GetProcessInfo()
+	{
+		try
+		{
+			var process = Process.GetCurrentProcess();
+			return $"{(process.PrivateMemorySize64 / 1024 / 1024):n0} MB";
+		}
+		catch (PlatformNotSupportedException)
+		{
+			return "Platform Not Supported";
+		}
+	}
+
+	private bool TestCache()
+	{
+		var key = Guid.NewGuid().ToString();
+		Cache.Set(key, "CacheTest", TimeSpan.FromMinutes(1));
+		return Cache.TryGetValue(key, out string _);
+	}
+}
+
+<ul>
+	<li><a asp-page="CacheControl">Cache Control</a></li>
+	<li><a asp-page="ExternalDependencies">External Dependencies</a></li>
+	<li><a asp-page="PlayerPoints">Player Points</a></li>
+	<li><a asp-page="WikiSyntaxErrors">Wiki Syntax Errors</a></li>
+	<li><a asp-page="Logging">Logging</a></li>
+	<li><a asp-page="SendEmail">Send an Email</a></li>
+	<li><a asp-page="SystemPages">System Wiki Pages</a></li>
+	<li condition="@Settings.EnableMetrics"><a href="/Metrics">Metrics</a></li>
+	<li condition="!@Settings.EnableMetrics">Metrics (disabled)</li>
+</ul>
+
+<standard-table>
+	<tr><td>IHostEnvironment Name</td><td>@Env.EnvironmentName</td></tr>
+	<tr><td>ASPNETCORE_ENVIRONMENT</td><td>@Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")</td></tr>
+	<tr><td>MachineName</td><td>@Environment.MachineName</td></tr>
+	<tr><td>Is 64 Bit</td><td>@Environment.Is64BitOperatingSystem</td></tr>
+	<tr><td>OS Version</td><td>@Environment.OSVersion.ToString()</td></tr>
+	<tr><td>Processor Count</td><td>@Environment.ProcessorCount</td></tr>
+	<tr><td>Total Memory Usage</td><td>@GetProcessInfo()</td></tr>
+    <tr><td>Database Provider</td><td>@Db.Database.ProviderName</td></tr>
+	<tr><td>Startup Strategy</td><td>@Settings.StartupStrategy</td></tr>
+	<tr><td>ReCaptcha Version</td><td>@Settings.ReCaptcha.Version</td></tr>
+	<tr>
+		<td>Cache Provider</td>
+		<td>
+			@Cache.GetType().Name
+			@{
+				bool cacheWorks = TestCache();
+			}
+			<span condition="cacheWorks" class="text-success"><i class="fa fa-check"></i> Working as expected</span>
+			<span condition="!cacheWorks" class="text-danger"><i class="fa fa-exclamation"></i> Failing to cache</span>
+		</td>
+	</tr>
+</standard-table>
+
+<hr />
+
+<standard-table>
+	<tr>
+		<td>Ip Address</td>
+		<td>@this.Model.IpAddress</td>
+	</tr>
+</standard-table>
+<hr />
+<h4>Request headers</h4>
+<ul>
+	@foreach(var kvp in Request.Headers)
+	{
+		<li>
+			@kvp.Key : @kvp.Value
+		</li>
+	}
+</ul>
+
+<h4>Debugging</h4>
+<form method="post" asp-page-handler="Make500">
+	<submit-button btn-class-override="btn-danger">Make a 500 Error</submit-button>
+</form>

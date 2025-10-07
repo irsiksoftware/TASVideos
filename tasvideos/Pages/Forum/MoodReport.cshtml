@@ -1,0 +1,44 @@
+﻿@page "{userName?}"
+@model TASVideos.Pages.Forum.MoodReportModel
+@{
+	ViewData.SetTitle(string.IsNullOrWhiteSpace(Model.UserName)
+		? "These are all user's mood avatars"
+		: "Mood avatars");
+}
+<p condition="string.IsNullOrWhiteSpace(Model.UserName)">These are peoples mood avatars</p>
+@foreach (var user in Model.MoodyUsers)
+{
+	<card class="mood-card">
+		<card-header>
+			<h4><profile-link username="@user.UserName"></profile-link></h4>
+		</card-header>
+		<card-body class="d-flex flex-wrap">
+			@foreach (var mood in MoodReportModel.Moods)
+			{
+				<div class="mood-box border p-2">
+					<strong>@mood.EnumDisplayName()</strong>
+					<br />
+					<object data="@user.MoodAvatarUrl.Replace("$", ((int)mood).ToString())" type="image/png">
+						<img src="/images/empty.png" alt="mood @mood.ToString()">
+					</object>
+				</div>
+			}
+		</card-body>
+	</card>
+}
+
+<style>
+	.mood-card {
+		margin-bottom: .75rem;
+	}
+
+	.mood-card:last-child {
+		margin-bottom:  0;
+	}
+
+	.mood-box {
+		display: inline-block;
+		min-height: 139px;
+		min-width: 100px;
+	}
+</style>

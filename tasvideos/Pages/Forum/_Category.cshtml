@@ -1,0 +1,51 @@
+﻿@model ForumCategoryDisplay
+
+<card class="mb-2">
+	<card-header>
+		<edit-link permission="EditCategories" asp-page="Edit" asp-route-id="@Model.Id" class="btn-sm float-end"></edit-link>
+		<h4>@Model.Title</h4>
+		@if (!string.IsNullOrWhiteSpace(Model.Description))
+		{
+			<div class="text-small">
+				@Html.Raw(Model.Description)
+			</div>
+		}
+	</card-header>
+	<card-header class="py-0 text-body-tertiary">
+		<row>
+			<div class="col-8"><small>Subforum</small></div>
+			<div class="col-4"><small>Last Post</small></div>
+		</row>
+	</card-header>
+	<card-body class="py-0">
+		@foreach (var forum in Model.Forums
+			.OrderBy(f => f.Ordinal)
+			.Where(f => User.Has(PermissionTo.SeeRestrictedForums) || !f.Restricted))
+		{
+		<row class="py-1 border-bottom border-card align-items-center">
+				<div class="col-8">
+					<strong>
+						<a condition="@(!string.IsNullOrEmpty(forum.ActivityPostsCreated) || !string.IsNullOrEmpty(forum.ActivityPostsEdited))" class="text-decoration-none">
+							<i class="fa fa-file activity-subforum d-none"
+							data-activity-posts-created="@forum.ActivityPostsCreated"
+						    data-activity-posts-edited="@forum.ActivityPostsEdited"></i>
+						</a>
+						<a asp-page="/Forum/Subforum/Index" asp-route-id="@forum.Id">@forum.Name</a>
+					</strong>
+				<div class="ps-3">
+					<small>
+						@Html.Raw(forum.Description)
+					</small>
+				</div>
+			</div>
+			@if (forum.LastPost is not null)
+			{
+				<div class="col-4 align-items-center">
+					<timezone-convert asp-for="@forum.LastPost.Timestamp" /> <br />
+					<a href="/Forum/Posts/@forum.LastPost.Id">@forum.LastPost.PosterName <i class="fa fa-arrow-circle-right"></i></a>
+				</div>
+			}
+			</row>
+		}
+	</card-body>
+</card>

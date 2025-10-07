@@ -1,0 +1,8 @@
+@page
+@{
+	ViewData.SetTitle("DoesNotExist");
+	HttpContext.Response.StatusCode = 404;
+}
+
+<h2>This user does not exist.</h2>
+<p>Note to editors: <a href="/HomePages">HomePages</a> can only be created for currently existing users.</p>

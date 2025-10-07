@@ -1,0 +1,9 @@
+﻿@model PublicationHistoryGroup
+
+@foreach (var node in Model.Goals.OrderBy(b => string.IsNullOrWhiteSpace(b.Goal)))
+{
+	<div class="mb-4">
+		<p>Current: <strong>@node.Goal</strong></p>
+		<partial name="_HistoryEntry" model="node" view-data="ViewData" />
+	</div>
+}

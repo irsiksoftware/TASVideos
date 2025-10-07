@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="../UseMSTest.props" />
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+		<MSTestAnalysisMode>All</MSTestAnalysisMode>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Bk2SampleFiles\*.bk2" />
+		<EmbeddedResource Include="CelTasSampleFiles\*.celtas" />
+		<EmbeddedResource Include="CtmSampleFiles\*.ctm" />
+		<EmbeddedResource Include="DsmSampleFiles\*.dsm" />
+		<EmbeddedResource Include="DtmSampleFiles\*.dtm" />
+		<EmbeddedResource Include="FbmSampleFiles\*.fbm" />
+		<EmbeddedResource Include="Fm2SampleFiles\*.fm2" />
+		<EmbeddedResource Include="Fm3SampleFiles\*.fm3" />
+		<EmbeddedResource Include="GbmvSampleFiles\*.gbmv" />
+		<EmbeddedResource Include="GmvSampleFiles\*.gmv" />
+		<EmbeddedResource Include="JrsrSampleFiles\*.jrsr" />
+		<EmbeddedResource Include="LmpSampleFiles\*.lmp" />
+		<EmbeddedResource Include="LsmvSampleFiles\*.lsmv" />
+		<EmbeddedResource Include="LtmSampleFiles\*.ltm" />
+		<EmbeddedResource Include="M64SampleFiles\*.m64" />
+		<EmbeddedResource Include="MarSampleFiles\*.mar" />
+		<EmbeddedResource Include="OmrSampleFiles\*.omr" />
+		<EmbeddedResource Include="P2m2SampleFiles\*.p2m2" />
+		<EmbeddedResource Include="TasprojSampleFiles\*.tasproj" />
+		<EmbeddedResource Include="VbmSampleFiles\*.vbm" />
+		<EmbeddedResource Include="WtfSampleFiles\*.wtf" />
+		<EmbeddedResource Include="ThreeCtSampleFiles\basic.3ct" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\TASVideos.Parsers\TASVideos.MovieParsers.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="ThreeCtSampleFiles\" />
+	</ItemGroup>
+</Project>

@@ -1,0 +1,27 @@
+﻿@page
+@model SaveboxModel
+@{
+	ViewData.SetTitle($"Saved messages for {User.Name()}");
+}
+
+<back-link asp-page="Inbox" class="mb-1" name-override="Inbox"></back-link>
+<standard-table>
+	<table-head columns="Subject,From,To,Date,"></table-head>
+	@foreach (var entry in Model.SaveBox)
+	{
+		<tr>
+			<td>
+				<a asp-page="Index" asp-route-id="@entry.Id">@entry.Subject</a>
+			</td>
+			<td><profile-link username="@entry.From"></profile-link></td>
+			<td><profile-link username="@entry.To"></profile-link></td>
+			<td><timezone-convert asp-for="@entry.SendDate" /></td>
+			<td-action-column>
+				<delete-button
+					asp-href="/Messages/InBox/@entry.Id/Delete"
+					warning-message="Are you sure you want to remove this message?"
+					class="btn-sm"></delete-button>
+			</td-action-column>
+		</tr>
+	}
+</standard-table>

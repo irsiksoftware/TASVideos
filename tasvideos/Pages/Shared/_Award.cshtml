@@ -1,0 +1,15 @@
+﻿@model TASVideos.Core.Services.AwardAssignmentSummary
+@{
+	string awardPathPrefix = $"/awards/{Model.Year}/{Model.ShortName}_{Model.Year}";
+	int maxHeight = ViewContext.PageGroup() is "Users" or "Profile"
+		? 92
+		: 48;
+}
+
+<a class="align-bottom" href="/Awards/@Model.Year.ToString()#@(Model.ShortName)_@Model.Year" title="Award - @Model.Description">
+	<img style="max-height: @(maxHeight)px;"
+		 srcset="@(awardPathPrefix).png 1x,
+				@(awardPathPrefix)-2x.png 2x,
+				@(awardPathPrefix)-4x.png 4x"
+		 src="@(awardPathPrefix).png" alt="@Model.Description" loading="lazy" />
+</a>

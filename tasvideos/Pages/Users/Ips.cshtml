@@ -1,0 +1,24 @@
+﻿@page "/Users/{userName}/Ips"
+@model IpsModel
+@{
+	ViewData.SetTitle($"Ip addresses used by {Model.UserName}");
+	var ipList = Model.Ips
+		.GroupBy(i => i.IpAddress)
+		.Select(i => new { Ip = i.Key, UsedOn = i.Max(ii => ii.UsedOn) })
+		.ToList();
+}
+
+<standard-table>
+	<caption>Total: @ipList.Count</caption>
+	<table-head columns="IP Address,Last Used,"></table-head>
+	@foreach (var ip in ipList.OrderByDescending(i => i.UsedOn))
+	{
+		<tr>
+			<td>@ip.Ip</td>
+			<td><timezone-convert asp-for="@ip.UsedOn" /></td>
+			<td>
+				<a permission="BanIpAddresses" asp-page="/Users/IpBan" asp-route-banIp="@ip" class="btn btn-danger">Ban</a>
+			</td>
+		</tr>
+	}
+</standard-table>

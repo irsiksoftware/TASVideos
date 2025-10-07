@@ -1,0 +1,41 @@
+﻿@page "{id}"
+@model MergeModel
+@{
+	ViewData.SetTitle($"Merging Topic: {Model.Topic.Title}");
+}
+
+@section PageTitle {
+	Merging Topic:
+	<a asp-page="/Forum/Subforum/Index" asp-route-id="@Model.Topic.ForumId">@Model.Topic.ForumName</a> →
+	<a asp-page="/Forum/Topics/Index" asp-route-id="@Model.Id">@Model.Topic.Title</a>
+}
+
+<partial Name="_ForumHeader" />
+<form client-side-validation="true" method="post">
+	<row>
+		<column md="6">
+			<input type="hidden" asp-for="Id" />
+			<input type="hidden" asp-for="Topic.ForumName" />
+			<input type="hidden" asp-for="Topic.ForumId" />
+			<input type="hidden" asp-for="Topic.Title" />
+			<fieldset>
+				<label asp-for="Topic.DestinationForumId">Forum To Merge In to</label>
+				<select asp-for="Topic.DestinationForumId" data-id="destination-forum-id" asp-items="Model.AvailableForums.OrderBy(f => f.Text)"></select>
+				<span asp-validation-for="Topic.DestinationForumId"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Topic.DestinationTopicId">Topic To Merge In to</label>
+				<select asp-for="Topic.DestinationTopicId" data-id="destination-topic-id" asp-items="Model.AvailableTopics.OrderBy(f => f.Text)"></select>
+				<span asp-validation-for="Topic.DestinationTopicId"></span>
+			</fieldset>
+		</column>
+	</row>
+	<form-button-bar>
+		<submit-button><i class="fa fa-save"></i> Merge</submit-button>
+		<cancel-link asp-page="/Forum/Topics/Index" asp-route-id="@Model.Id"></cancel-link>
+	</form-button-bar>
+</form>
+
+@section Scripts {
+	<script src="/js/topic-merge.js"></script>
+}

@@ -1,0 +1,21 @@
+﻿@page
+@model IndexModel
+@{
+	ViewData.SetTitle("Tag List");
+}
+<top-button-bar>
+	<add-link asp-page="Create"></add-link>
+</top-button-bar>
+<standard-table>
+	<table-head columns="Code,Display Name,"></table-head>
+	@foreach (var tag in Model.Tags.OrderBy(t => t.Code))
+	{
+		<tr>
+			<td>@tag.Code</td>
+			<td>@tag.DisplayName</td>
+			<td-action-column>
+				<edit-link asp-page="Edit" asp-route-id="@tag.Id"></edit-link>
+			</td-action-column>
+		</tr>
+	}
+</standard-table>

@@ -1,0 +1,16 @@
+﻿@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+}
+<h2>Your account profile</h2>
+<hr />
+<row>
+	<column lg="3">
+		<partial name="_ProfileNav" />
+	</column>
+	<column lg="9">
+		@RenderBody()
+	</column>
+</row>
+@section Scripts {
+	@await RenderSectionAsync("Scripts", required: false)
+}

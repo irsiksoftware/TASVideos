@@ -1,0 +1,32 @@
+﻿@page "{id}"
+@model PollResultsModel
+@{
+	ViewData.SetTitle($"Poll Results for {Model.Poll.TopicTitle}");
+}
+<partial Name="_ForumHeader" />
+<top-button-bar>
+	<back-link asp-page="/Forum/Topics/Index" asp-route-id="@Model.Poll.TopicId"></back-link>
+</top-button-bar>
+<forum-markup class="my-3" markup="@Model.Poll.Question" enable-bb-code="true"></forum-markup>
+<standard-table>
+	<table-head condition="!User.Has(PermissionTo.ResetPollResults)" columns="Option,User,Vote On,IP Address"></table-head>
+	<table-head permission="ResetPollResults" columns="Option,User,Vote On,IP Address,Reset"></table-head>
+	@foreach(var vote in Model.Poll.Votes
+		.OrderBy(v => v.Ordinal)
+		.ThenBy(v => v.UserName))
+	{
+		<tr>
+			<td>@vote.OptionText</td>
+			<td><profile-link username="@vote.UserName"></profile-link></td>
+			<td><timezone-convert asp-for="@vote.CreateTimestamp" /></td>
+			<td>@vote.IpAddress</td>
+			<td permission="ResetPollResults">
+				<form method="post">
+					<input type="hidden" name="userId" value="@vote.UserId" />
+					<button type="submit" class="btn btn-danger" asp-page-handler="ResetVote"><i class="fa fa-remove"></i>
+					</button>
+				</form>
+			</td>
+		</tr>
+	}
+</standard-table>

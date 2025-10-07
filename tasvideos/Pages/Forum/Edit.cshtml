@@ -1,0 +1,54 @@
+﻿@page "{id}"
+@model EditModel
+@{
+	ViewData.SetTitle($"TASVideos Forum Category {Model.Category.Title}");
+}
+<form client-side-validation="true" method="post">
+	<row>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Category.Title"></label>
+				<input asp-for="Category.Title" />
+				<span asp-validation-for="Category.Title"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Category.Description"></label>
+				<input asp-for="Category.Description" />
+				<span asp-validation-for="Category.Description"></span>
+			</fieldset>
+		</column>
+	</row>
+	<div id="forum-container" class="border border-info ">
+		@for (int i = 0; i < Model.Category.Forums.Count; i++)
+		{
+			<div class="forum-section border border-info p-2" data-index="@i">
+				<input type="hidden" asp-for="Category.Forums[i].Id" />
+				<input type="hidden" asp-for="Category.Forums[i].Description" />
+				<input type="hidden" asp-for="Category.Forums[i].Name" />
+				<input type="hidden" asp-for="Category.Forums[i].Ordinal" />
+				<div class="float-end">
+					<button data-id="move-up" type="button" class="btn btn-secondary btn-sm">
+						<i class="fa fa-arrow-up"></i>
+					</button>
+					<button data-id="move-down" type="button" class="btn btn-secondary btn-sm">
+						<i class="fa fa-arrow-down"></i>
+					</button>
+				</div>
+				<strong><a asp-page="/Forum/Subforum/Index" asp-route-id="@Model.Category.Forums[i].Id">@Model.Category.Forums[i].Name</a></strong>
+				<div class="mb-2 ps-3">
+					<small>
+						@Html.Raw(Model.Category.Forums[i].Description)
+					</small>
+				</div>
+			</div>
+		}
+	</div>
+	<form-button-bar>
+		<submit-button></submit-button>
+		<cancel-link asp-page="Index"></cancel-link>
+	</form-button-bar>
+</form>
+
+@section Scripts {
+	<script src="/js/forum-edit.js"></script>
+}

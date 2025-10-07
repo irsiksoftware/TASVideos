@@ -1,0 +1,135 @@
+﻿@page "{id}"
+@model EditModel
+@{
+	ViewData.SetTitle($"Edit Submission {Model.Submission.Title}");
+	ViewData.UseClientFileCompression();
+	var canEditPublicationClass = User.Has(PermissionTo.JudgeSubmissions)
+		&& Model.AvailableStatuses.Any(s => s == SubmissionStatus.Accepted);
+}
+<info-alert dismissible="true">
+	@await Html.RenderWiki(SystemWiki.EditMovieHeader)
+</info-alert>
+<top-button-bar condition="Model.CanDelete">
+	<a  asp-page="Delete" asp-route-id="@Model.Id" class="btn btn-danger btn-sm">
+		<i class="fa fa-remove"></i> Delete
+	</a>
+</top-button-bar>
+<form client-side-validation="true" method="post" enctype="multipart/form-data">
+	<input condition="@Model.AvailableStatuses.Count <= 1" type="hidden" asp-for="Submission.Status" />
+	<input type="hidden" asp-for="MarkupChanged" id="markup-changed" />
+	<row>
+		<column lg="6" permission="ReplaceSubmissionMovieFile">
+			<fieldset>
+				<label asp-for="Submission.ReplaceMovieFile"></label>
+				<input asp-for="Submission.ReplaceMovieFile" data-id="movie-file" />
+				<span asp-validation-for="Submission.ReplaceMovieFile"></span>
+				<div data-id="nozip-reminder" class="alert alert-warning d-none">Note: You no longer need to zip the movie file. You can select the original movie file and your browser will automatically compress it before uploading.</div>
+			</fieldset>
+		</column>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Submission.Authors">Author(s)</label>
+				<string-list asp-for="Submission.Authors" />
+				<span asp-validation-for="Submission.Authors"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Submission.ExternalAuthors"></label>
+				<input asp-for="Submission.ExternalAuthors" />
+				<div>Only authors not registered for TASVideos should be listed here. If multiple authors, separate the names with a comma.</div>
+				<span asp-validation-for="Submission.ExternalAuthors"></span>
+			</fieldset>
+		</column>
+	</row>
+	<row>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Submission.GameVersion"></label>
+				<input asp-for="Submission.GameVersion" placeholder="USA v1.0" />
+				<span asp-validation-for="Submission.GameVersion"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Submission.GameName"></label>
+				<input asp-for="Submission.GameName" placeholder="Example: Mega Man 2" />
+				<span asp-validation-for="Submission.GameName"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Submission.Emulator">Emulator and version</label>
+				<input asp-for="Submission.Emulator" spellcheck="false" placeholder="Example: BizHawk 2.8.0" />
+				<div>Needs to be a specific version that sync was verified on. Does not necessarily need to be the version used by the author.</div>
+				<span asp-validation-for="Submission.Emulator"></span>
+			</fieldset>
+		</column>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Submission.Goal"></label>
+				<input asp-for="Submission.Goal" placeholder="Example: 100% or princess only; any% can usually be omitted" />
+				<span asp-validation-for="Submission.Goal"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Submission.RomName">ROM filename</label>
+				<input asp-for="Submission.RomName" placeholder="Example: Mega Man II (U) [!].nes" />
+				<span asp-validation-for="Submission.RomName"></span>
+			</fieldset>
+			<fieldset>
+				<label asp-for="Submission.EncodeEmbedLink"></label>
+				<input asp-for="Submission.EncodeEmbedLink" placeholder="https://www.youtube.com/embed/0mregEW6kVU" />
+				<div>Embedded link to a video of your movie. Must be YouTube or niconico.</div>
+				<span asp-validation-for="Submission.EncodeEmbedLink"></span>
+			</fieldset>
+		</column>
+	</row>
+	<row>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Submission.Status"></label>
+				<select data-id="status"
+						asp-for="Submission.Status"
+						asp-items="@Model.AvailableStatuses.Select(s => new SelectListItem { Text = s.EnumDisplayName(), Value = ((int)s).ToString(), Selected = s == Model.Submission.Status })"></select>
+			</fieldset>
+			<fieldset id="rejection-reason" data-rejection-id="@((int)SubmissionStatus.Rejected)" show="@Model.Submission.Status == SubmissionStatus.Rejected">
+				<label asp-for="Submission.RejectionReason">Reason</label>
+				<select asp-for="Submission.RejectionReason" asp-items="Model.AvailableRejectionReasons"></select>
+			</fieldset>
+		</column>
+		<column lg="6" condition="canEditPublicationClass">
+			<fieldset>
+				<label asp-for="Submission.IntendedPublicationClass"></label>
+				<select asp-for="Submission.IntendedPublicationClass" asp-items="@UiDefaults.DefaultEntry.Concat(Model.AvailableClasses)"></select>
+				<span asp-validation-for="Submission.IntendedPublicationClass"></span>
+			</fieldset>
+		</column>
+		<input type="hidden" asp-for="Submission.IntendedPublicationClass" condition="!canEditPublicationClass" />
+	</row>
+	<wiki-edit-helper class="mt-2"></wiki-edit-helper>
+	<fullrow>
+		<fieldset>
+			<label asp-for="Markup">Comments and explanations</label>
+			<wiki-textarea asp-for="Markup" rows="12"></wiki-textarea>
+			<span asp-validation-for="Markup"></span>
+			@await Html.RenderWiki(SystemWiki.WikiEditHelp)
+		</fieldset>
+	</fullrow>
+	<fullrow>
+		<fieldset>
+			<label asp-for="Submission.RevisionMessage"></label>
+			<div class="input-group">
+				<input asp-for="Submission.RevisionMessage" />
+				<div class="input-group-text">
+					<minor-edit></minor-edit>
+				</div>
+			</div>
+			<span asp-validation-for="Submission.RevisionMessage"></span>
+		</fieldset>
+	</fullrow>
+	<form-button-bar>
+		<preview-button></preview-button>
+		<submit-button></submit-button>
+		<cancel-link asp-page="View" asp-route-id="@Model.Id"></cancel-link>
+	</form-button-bar>
+</form>
+<wiki-preview></wiki-preview>
+
+@section Scripts {
+	<script src="/js/submissions-edit.js"></script>
+	<script src="/js/compress-file.js"></script>
+}

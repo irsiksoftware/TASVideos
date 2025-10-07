@@ -1,0 +1,30 @@
+﻿@page
+@model IndexModel
+@{
+	ViewData.SetTitle("Publication Class List");
+}
+
+<top-button-bar>
+	<add-link asp-page="Create"></add-link>
+</top-button-bar>
+<standard-table>
+	<table-head columns="Id,Name,Link,"></table-head>
+	@foreach (var pubClass in Model.Classes.OrderBy(t => t.Id))
+	{
+		<tr>
+			<td>
+				@pubClass.Id
+			</td>
+			<td>
+				<img condition="!string.IsNullOrWhiteSpace(pubClass.IconPath)" class="pixelart-image" src="/@pubClass.IconPath" alt="@pubClass.Name" />
+				@pubClass.Name
+			</td>
+			<td>
+				<a href="/@pubClass.Link">@pubClass.Link</a>
+			</td>
+			<td-action-column>
+				<edit-link asp-page="/PublicationClasses/Edit" asp-route-id="@pubClass.Id"></edit-link>
+			</td-action-column>
+		</tr>
+	}
+</standard-table>

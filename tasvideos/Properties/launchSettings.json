@@ -1,0 +1,72 @@
+{
+	"iisSettings": {
+		"windowsAuthentication": false,
+		"anonymousAuthentication": true,
+		"iisExpress": {
+			"applicationUrl": "https://localhost:44385/",
+			"sslPort": 44385
+		}
+	},
+	"profiles": {
+		"Dev (Generate Sample Data)": {
+			"commandName": "IISExpress",
+			"launchBrowser": true,
+			"launchUrl": "https://localhost:44385/",
+			"environmentVariables": {
+				"ASPNETCORE_preventHostingStartup": "True",
+				"ASPNETCORE_ENVIRONMENT": "Development",
+				"StartupStrategy": "Sample",
+				"UseSampleDatabase": "true"
+			}
+		},
+		"Dev (Sample Data No Recreate)": {
+			"commandName": "IISExpress",
+			"launchBrowser": true,
+			"launchUrl": "https://localhost:44385/",
+			"environmentVariables": {
+				"ASPNETCORE_preventHostingStartup": "True",
+				"ASPNETCORE_ENVIRONMENT": "Development",
+				"StartupStrategy": "Migrate",
+				"UseSampleDatabase": "true"
+			}
+		},
+		"Dev (Migrate)": {
+			"commandName": "IISExpress",
+			"launchBrowser": true,
+			"launchUrl": "https://localhost:44385/",
+			"environmentVariables": {
+				"ASPNETCORE_preventHostingStartup": "True",
+				"ASPNETCORE_ENVIRONMENT": "Development",
+				"StartupStrategy": "Migrate"
+			}
+		},
+		"Dev (No Migrate)": {
+			"commandName": "IISExpress",
+			"launchBrowser": true,
+			"launchUrl": "https://localhost:44385/",
+			"environmentVariables": {
+				"ASPNETCORE_preventHostingStartup": "True",
+				"ASPNETCORE_ENVIRONMENT": "Development",
+				"StartupStrategy": "Minimal"
+			}
+		},
+		"Development": {
+			"commandName": "Project",
+			"environmentVariables": {
+				"ASPNETCORE_ENVIRONMENT": "Development"
+			}
+		},
+		"Staging": {
+			"commandName": "Project",
+			"environmentVariables": {
+				"ASPNETCORE_ENVIRONMENT": "Staging"
+			}
+		},
+		"Production": {
+			"commandName": "Project",
+			"environmentVariables": {
+				"ASPNETCORE_ENVIRONMENT": "Production"
+			}
+		}
+	}
+}
