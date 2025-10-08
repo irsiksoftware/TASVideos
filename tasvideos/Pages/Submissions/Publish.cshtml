@@ -83,14 +83,14 @@
 			<fieldset>
 				<label asp-for="Submission.MovieFilename"></label>
 				<div class="input-group">
-					<input asp-for="Submission.MovieFilename" />
+					<input asp-for="Submission.MovieFilename" readonly />
 					<div class="input-group-append">
 						<span class="input-group-text">
 							.@Model.Submission.MovieExtension
 						</span>
 					</div>
 				</div>
-				<div>Please follow the convention: xxxv#-yyy where xxx is author name, # is version and yyy is game name. Special characters such as "&amp;" and "/" and "." and spaces must not occur in the filename.</div>
+				<div>The movie filename is automatically generated based on the publication ID.</div>
 				<span asp-validation-for="Submission.MovieFilename"></span>
 			</fieldset>
 			<fieldset>
