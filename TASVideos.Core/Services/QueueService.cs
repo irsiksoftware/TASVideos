@@ -629,7 +629,8 @@ internal class QueueService(
 				CycleCount = mapResult.CycleCount,
 				Annotations = mapResult.Annotations,
 				Warnings = mapResult.Warnings,
-				SystemFrameRate = mapResult.SystemFrameRate
+				SystemFrameRate = mapResult.SystemFrameRate,
+				IsEventSubmission = request.IsEventSubmission
 			}).Entity;
 
 			if (request.ParseResult.Hashes.Count > 0)
@@ -1049,7 +1050,8 @@ public record SubmitRequest(
 	string Markup,
 	byte[] MovieFile,
 	IParseResult ParseResult,
-	User Submitter);
+	User Submitter,
+	bool IsEventSubmission = false);
 
 public record SubmitResult(string? ErrorMessage, int Id, string Title, byte[]? Screenshot)
 {

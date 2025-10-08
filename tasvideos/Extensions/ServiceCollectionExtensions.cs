@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
 		new("/Submissions/View", "{id:int}S"),
 		new("/Publications/Index", "Movies-{query}"),
 		new("/Publications/View", "{id:int}M"),
+		new("/Events/View", "{id:int}E"),
 		new("/RssFeeds/Publications", "/publications.rss"),
 		new("/RssFeeds/Submissions", "/submissions.rss"),
 		new("/RssFeeds/Wiki", "/wiki.rss"),

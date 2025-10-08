@@ -1,0 +1,43 @@
+@page
+@model IndexModel
+@{
+	ViewData.SetTitle("Event Entries");
+}
+
+<h1>Event Entries</h1>
+<p>
+	TASVideos showcases runs demonstrated at marathons and events. These entries may not have
+	accurate input files due to technical limitations but represent the historical record of
+	TAS showcases at events.
+</p>
+
+@if (!Model.Events.Any())
+{
+	<div class="alert alert-info">No event entries yet.</div>
+}
+else
+{
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th>ID</th>
+				<th>Event Name</th>
+				<th>Title</th>
+				<th>Date</th>
+				<th>Authors</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var evt in Model.Events)
+			{
+				<tr>
+					<td><a asp-page="View" asp-route-id="@evt.Id">@(evt.Id)E</a></td>
+					<td>@evt.EventName</td>
+					<td>@evt.Title</td>
+					<td>@(evt.EventDate?.ToString("yyyy-MM-dd") ?? evt.CreateTimestamp.ToString("yyyy-MM-dd"))</td>
+					<td>@string.Join(", ", evt.Authors)</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}

@@ -3,6 +3,7 @@ using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using TASVideos.Data;
 namespace TASVideos.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251008171354_AddEventEntries")]
+    partial class AddEventEntries
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -269,7 +272,6 @@ namespace TASVideos.Data.Migrations
                         .HasName("pk_events");
 
                     b.HasIndex("SubmissionId")
-                        .IsUnique()
                         .HasDatabaseName("ix_events_submission_id");
 
                     b.HasIndex("SystemFrameRateId")
@@ -1895,10 +1897,6 @@ namespace TASVideos.Data.Migrations
                         .HasColumnType("citext")
                         .HasColumnName("normalized_name");
 
-                    b.Property<bool>("PMToGroup")
-                        .HasColumnType("boolean")
-                        .HasColumnName("pm_to_group");
-
                     b.HasKey("Id")
                         .HasName("pk_roles");
 
@@ -2060,10 +2058,6 @@ namespace TASVideos.Data.Migrations
                     b.Property<int?>("IntendedClassId")
                         .HasColumnType("integer")
                         .HasColumnName("intended_class_id");
-
-                    b.Property<bool>("IsEventSubmission")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_event_submission");
 
                     b.Property<int?>("JudgeId")
                         .HasColumnType("integer")
@@ -2939,8 +2933,8 @@ namespace TASVideos.Data.Migrations
             modelBuilder.Entity("TASVideos.Data.Entity.Event", b =>
                 {
                     b.HasOne("TASVideos.Data.Entity.Submission", "Submission")
-                        .WithOne("Event")
-                        .HasForeignKey("TASVideos.Data.Entity.Event", "SubmissionId")
+                        .WithMany()
+                        .HasForeignKey("SubmissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_events_submissions_submission_id");
@@ -3920,8 +3914,6 @@ namespace TASVideos.Data.Migrations
 
             modelBuilder.Entity("TASVideos.Data.Entity.Submission", b =>
                 {
-                    b.Navigation("Event");
-
                     b.Navigation("History");
 
                     b.Navigation("Publication");

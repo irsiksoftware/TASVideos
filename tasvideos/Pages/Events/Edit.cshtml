@@ -1,0 +1,96 @@
+@page "{id}"
+@model EditModel
+@{
+	ViewData.SetTitle($"Edit Event {Model.Id}E");
+}
+
+<h1>Edit Event @Model.Id E</h1>
+
+<form method="post">
+	<row>
+		<column lg="6">
+			<fieldset>
+				<label asp-for="Event.Title"></label>
+				<input asp-for="Event.Title" class="form-control" />
+				<span asp-validation-for="Event.Title"></span>
+			</fieldset>
+
+			<fieldset>
+				<label asp-for="Event.EventName"></label>
+				<input asp-for="Event.EventName" class="form-control" />
+				<span asp-validation-for="Event.EventName"></span>
+			</fieldset>
+
+			<fieldset>
+				<label asp-for="Event.EventDate"></label>
+				<input asp-for="Event.EventDate" type="date" class="form-control" />
+				<span asp-validation-for="Event.EventDate"></span>
+			</fieldset>
+
+			<fieldset>
+				<label asp-for="Event.EmulatorVersion"></label>
+				<input asp-for="Event.EmulatorVersion" class="form-control" />
+				<span asp-validation-for="Event.EmulatorVersion"></span>
+			</fieldset>
+		</column>
+	</row>
+
+	<hr />
+
+	<h3>Videos & Downloads</h3>
+	<div id="urls-container">
+		@for (int i = 0; i < Model.Event.Urls.Count; i++)
+		{
+			<row class="mb-2">
+				<column md="6">
+					<input asp-for="Event.Urls[i].Url" class="form-control" placeholder="URL" />
+				</column>
+				<column md="3">
+					<select asp-for="Event.Urls[i].Type" class="form-select">
+						<option value="@EventLinkType.Streaming">Streaming Video</option>
+						<option value="@EventLinkType.Download">Download</option>
+					</select>
+				</column>
+				<column md="3">
+					<input asp-for="Event.Urls[i].DisplayName" class="form-control" placeholder="Display Name (optional)" />
+				</column>
+			</row>
+		}
+	</div>
+
+	<button type="button" class="btn btn-secondary" onclick="addUrl()">Add URL</button>
+
+	<hr />
+
+	<form-button-bar>
+		<submit-button>Save</submit-button>
+		<cancel-link asp-page="View" asp-route-id="@Model.Id"></cancel-link>
+	</form-button-bar>
+</form>
+
+@section Scripts {
+	<script>
+		let urlIndex = @Model.Event.Urls.Count;
+		function addUrl() {
+			const container = document.getElementById('urls-container');
+			const newRow = document.createElement('div');
+			newRow.className = 'row mb-2';
+			newRow.innerHTML = `
+				<div class="col-md-6">
+					<input type="text" name="Event.Urls[${urlIndex}].Url" class="form-control" placeholder="URL" />
+				</div>
+				<div class="col-md-3">
+					<select name="Event.Urls[${urlIndex}].Type" class="form-select">
+						<option value="1">Streaming Video</option>
+						<option value="2">Download</option>
+					</select>
+				</div>
+				<div class="col-md-3">
+					<input type="text" name="Event.Urls[${urlIndex}].DisplayName" class="form-control" placeholder="Display Name (optional)" />
+				</div>
+			`;
+			container.appendChild(newRow);
+			urlIndex++;
+		}
+	</script>
+}

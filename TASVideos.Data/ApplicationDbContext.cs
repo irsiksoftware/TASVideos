@@ -52,6 +52,14 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int, UserClaim
 	public DbSet<PublicationAward> PublicationAwards { get; set; } = null!;
 	public DbSet<UserAward> UserAwards { get; set; } = null!;
 
+	// Event tables
+	public DbSet<Event> Events { get; set; } = null!;
+	public DbSet<EventAuthor> EventAuthors { get; set; } = null!;
+	public DbSet<EventFile> EventFiles { get; set; } = null!;
+	public DbSet<EventTag> EventTags { get; set; } = null!;
+	public DbSet<EventFlag> EventFlags { get; set; } = null!;
+	public DbSet<EventUrl> EventUrls { get; set; } = null!;
+
 	// Game tables
 	public DbSet<Game> Games { get; set; } = null!;
 	public DbSet<GameGenre> GameGenres { get; set; } = null!;
@@ -508,6 +516,29 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int, UserClaim
 
 			entity.HasIndex(e => e.Resolved);
 			entity.HasIndex(e => e.ReportedOn);
+		});
+
+		builder.Entity<EventAuthor>(entity =>
+		{
+			entity.HasKey(e => new { e.UserId, e.EventId });
+			entity.HasIndex(e => e.EventId);
+		});
+
+		builder.Entity<EventTag>(entity =>
+		{
+			entity.HasKey(e => new { e.EventId, e.TagId });
+			entity.HasIndex(e => e.EventId);
+		});
+
+		builder.Entity<EventFlag>(entity =>
+		{
+			entity.HasKey(e => new { e.EventId, e.FlagId });
+			entity.HasIndex(e => e.EventId);
+		});
+
+		builder.Entity<EventUrl>(entity =>
+		{
+			entity.HasIndex(e => e.Type);
 		});
 	}
 

@@ -8,6 +8,7 @@ public static class WebApplicationExtensions
 	{
 		return app.MapPublications()
 			.MapSubmissions()
+			.MapEvents()
 			.MapGames()
 			.MapSystems()
 			.MapUsers()
