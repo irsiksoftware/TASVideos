@@ -14,7 +14,7 @@ public class PublicationsModel(ApplicationDbContext db, IWikiPages wikiPages) : 
 			.Where(p => p.CreateTimestamp >= minTimestamp)
 			.Select(p => new RssPublication(
 				p.Id,
-				p.MovieFile.Length,
+				p.MovieFiles.FirstOrDefault() != null ? p.MovieFiles.First().FileData.Length : 0,
 				p.CreateTimestamp,
 				p.Title,
 				p.PublicationTags.Select(pt => pt.Tag!.DisplayName).ToList(),

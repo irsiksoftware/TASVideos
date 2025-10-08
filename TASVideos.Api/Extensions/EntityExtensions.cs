@@ -86,7 +86,7 @@ internal static class EntityExtensions
 				? s.Publisher.UserName
 				: null,
 			Status = s.Status.ToString(),
-			MovieExtension = s.MovieExtension,
+			MovieExtension = s.MovieFiles.FirstOrDefault() != null ? s.MovieFiles.First().FileExtension : null,
 			GameId = s.GameId,
 			GameName = s.Game != null
 				? s.Game.DisplayName

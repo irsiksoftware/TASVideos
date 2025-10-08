@@ -39,6 +39,7 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int, UserClaim
 	public DbSet<Publication> Publications { get; set; } = null!;
 	public DbSet<PublicationAuthor> PublicationAuthors { get; set; } = null!;
 	public DbSet<PublicationFile> PublicationFiles { get; set; } = null!;
+	public DbSet<MovieFile> MovieFiles { get; set; } = null!;
 	public DbSet<PublicationTag> PublicationTags { get; set; } = null!;
 	public DbSet<PublicationRating> PublicationRatings { get; set; } = null!;
 	public DbSet<PublicationFlag> PublicationFlags { get; set; } = null!;
@@ -483,6 +484,12 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int, UserClaim
 			entity.HasIndex(e => e.RowId);
 			entity.HasIndex(e => e.TableName);
 			entity.HasIndex(e => e.UserId);
+		});
+
+		builder.Entity<MovieFile>(entity =>
+		{
+			entity.HasIndex(e => e.SubmissionId);
+			entity.HasIndex(e => e.PublicationId);
 		});
 	}
 

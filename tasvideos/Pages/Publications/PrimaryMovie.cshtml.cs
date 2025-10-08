@@ -65,7 +65,26 @@ public class PrimaryMoviesModel(
 
 		string log = $"Primary movie file replaced, Reason: {Reason}";
 		publication.MovieFileName = PrimaryMovieFile!.FileName;
-		publication.MovieFile = await PrimaryMovieFile.ToBytes();
+
+		var movieFileBytes = await PrimaryMovieFile.ToBytes();
+		var existingMovieFile = await db.MovieFiles
+			.Where(mf => mf.PublicationId == Id)
+			.FirstOrDefaultAsync();
+
+		if (existingMovieFile != null)
+		{
+			existingMovieFile.FileData = movieFileBytes;
+			existingMovieFile.FileName = PrimaryMovieFile.FileName;
+		}
+		else
+		{
+			db.MovieFiles.Add(new MovieFile
+			{
+				PublicationId = Id,
+				FileData = movieFileBytes,
+				FileName = PrimaryMovieFile.FileName
+			});
+		}
 
 		var result = await db.TrySaveChanges();
 		SetMessage(result, log, "Unable to add file");

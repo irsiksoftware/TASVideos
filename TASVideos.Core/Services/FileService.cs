@@ -89,21 +89,25 @@ internal class FileService(ApplicationDbContext db) : IFileService
 
 	public async Task<ZippedFile?> GetSubmissionFile(int id)
 	{
-		var data = await db.Submissions
-			.Where(s => s.Id == id)
-			.Select(s => s.MovieFile)
-			.SingleOrDefaultAsync();
+		var movieFile = await db.MovieFiles
+			.Where(mf => mf.SubmissionId == id)
+			.FirstOrDefaultAsync();
 
-		return data is not null
-			? new ZippedFile(data, $"submission{id}")
+		return movieFile is not null
+			? new ZippedFile(movieFile.FileData, movieFile.FileName ?? $"submission{id}")
 			: null;
 	}
 
 	public async Task<ZippedFile?> GetPublicationFile(int id)
-		=> await db.Publications
-			.Where(p => p.Id == id)
-			.Select(p => new ZippedFile(p.MovieFile, p.MovieFileName))
-			.SingleOrDefaultAsync();
+	{
+		var movieFile = await db.MovieFiles
+			.Where(mf => mf.PublicationId == id)
+			.FirstOrDefaultAsync();
+
+		return movieFile is not null
+			? new ZippedFile(movieFile.FileData, movieFile.FileName ?? $"publication{id}")
+			: null;
+	}
 
 	public async Task<DownloadableFile?> GetAdditionalPublicationFile(int publicationId, int fileId)
 		=> await db.PublicationFiles

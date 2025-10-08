@@ -39,10 +39,7 @@ public class Submission : BaseEntity, ITimeable
 	public SubmissionStatus Status { get; set; } = SubmissionStatus.New;
 	public ICollection<SubmissionStatusHistory> History { get; init; } = [];
 
-	[ExcludeFromAutoHistory]
-	public byte[] MovieFile { get; set; } = [];
-
-	public string? MovieExtension { get; set; }
+	public ICollection<MovieFile> MovieFiles { get; init; } = [];
 
 	public int? GameId { get; set; }
 	public Game.Game? Game { get; set; }

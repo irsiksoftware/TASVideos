@@ -89,7 +89,15 @@ public class FileServiceTests : TestDbBase
 	{
 		byte[] zippedData = [0xFF, 0xFF];
 		var submission = _db.AddSubmission();
-		submission.Entity.MovieFile = zippedData;
+		await _db.SaveChangesAsync();
+
+		_db.MovieFiles.Add(new MovieFile
+		{
+			SubmissionId = submission.Entity.Id,
+			FileData = zippedData,
+			FileExtension = ".bk2",
+			FileName = $"submission{submission.Entity.Id}"
+		});
 		await _db.SaveChangesAsync();
 
 		var actual = await _fileService.GetSubmissionFile(submission.Entity.Id);
@@ -112,8 +120,16 @@ public class FileServiceTests : TestDbBase
 		const string movieFileName = "movieFileName";
 		byte[] zippedData = [0xFF, 0xFF];
 		var publication = _db.AddPublication();
-		publication.Entity.MovieFile = zippedData;
 		publication.Entity.MovieFileName = movieFileName;
+		await _db.SaveChangesAsync();
+
+		_db.MovieFiles.Add(new MovieFile
+		{
+			PublicationId = publication.Entity.Id,
+			FileData = zippedData,
+			FileExtension = ".bk2",
+			FileName = movieFileName
+		});
 		await _db.SaveChangesAsync();
 
 		var actual = await _fileService.GetPublicationFile(publication.Entity.Id);

@@ -559,7 +559,7 @@ public static class EntityExtensions
 			PublicationClass = s.IntendedClass != null
 				? s.IntendedClass.Name
 				: "",
-			MovieExtension = s.MovieExtension,
+			MovieExtension = s.MovieFiles.FirstOrDefault() != null ? s.MovieFiles.First().FileExtension : null,
 			Title = s.Title,
 			SystemId = s.SystemId ?? 0,
 			SystemFrameRateId = s.SystemFrameRateId,

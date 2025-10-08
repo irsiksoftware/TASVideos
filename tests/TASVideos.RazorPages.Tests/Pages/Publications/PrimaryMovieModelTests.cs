@@ -83,9 +83,17 @@ public class PrimaryMovieModelTests : TestDbBase
 		var publication = _db.AddPublication().Entity;
 		publication.MovieFileName = "original.zip";
 		publication.Title = "Test Publication";
-		publication.MovieFile = [1, 2, 3];
 		var user = _db.AddUser("TestUser").Entity;
 		await _db.SaveChangesAsync();
+
+		_db.MovieFiles.Add(new MovieFile
+		{
+			PublicationId = publication.Id,
+			FileData = [1, 2, 3],
+			FileName = "original.zip"
+		});
+		await _db.SaveChangesAsync();
+
 		AddAuthenticatedUser(_page, user, [PermissionTo.ReplacePrimaryMovieFile]);
 
 		_page.Id = publication.Id;
@@ -98,7 +106,10 @@ public class PrimaryMovieModelTests : TestDbBase
 		var updatedPublication = await _db.Publications.FindAsync(publication.Id);
 		Assert.IsNotNull(updatedPublication);
 		Assert.AreEqual("new.zip", updatedPublication.MovieFileName);
-		Assert.AreEqual(4, updatedPublication.MovieFile.Length);
+
+		var updatedMovieFile = await _db.MovieFiles.FirstOrDefaultAsync(mf => mf.PublicationId == publication.Id);
+		Assert.IsNotNull(updatedMovieFile);
+		Assert.AreEqual(4, updatedMovieFile.FileData.Length);
 
 		await _maintenanceLogger.Received(1).Log(publication.Id, user.Id, "Primary movie file replaced, Reason: Improved movie file");
 		await _publisher.Received(1).Send(Arg.Any<Post>());

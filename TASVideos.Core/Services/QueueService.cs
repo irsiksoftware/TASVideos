@@ -360,14 +360,25 @@ internal class QueueService(
 			submission.MovieStartType = mapResult.MovieStartType;
 			submission.Frames = mapResult.Frames;
 			submission.RerecordCount = mapResult.RerecordCount;
-			submission.MovieExtension = mapResult.MovieExtension;
 			submission.System = mapResult.System;
 			submission.CycleCount = mapResult.CycleCount;
 			submission.Annotations = mapResult.Annotations;
 			submission.Warnings = mapResult.Warnings;
 			submission.SystemFrameRate = mapResult.SystemFrameRate;
 
-			submission.MovieFile = movieFileBytes;
+			var existingMovieFile = submission.MovieFiles.FirstOrDefault();
+			if (existingMovieFile != null)
+			{
+				db.MovieFiles.Remove(existingMovieFile);
+			}
+
+			submission.MovieFiles.Add(new MovieFile
+			{
+				FileData = movieFileBytes,
+				FileExtension = mapResult.MovieExtension,
+				FileName = $"submission{submission.Id}"
+			});
+
 			submission.SyncedOn = null;
 			submission.SyncedByUserId = null;
 
@@ -619,12 +630,10 @@ internal class QueueService(
 				EmulatorVersion = request.Emulator,
 				EncodeEmbedLink = youtubeSync.ConvertToEmbedLink(request.EncodeEmbeddedLink),
 				AdditionalAuthors = request.ExternalAuthors.NormalizeCsv(),
-				MovieFile = request.MovieFile,
 				Submitter = request.Submitter,
 				MovieStartType = mapResult.MovieStartType,
 				Frames = mapResult.Frames,
 				RerecordCount = mapResult.RerecordCount,
-				MovieExtension = mapResult.MovieExtension,
 				System = mapResult.System,
 				CycleCount = mapResult.CycleCount,
 				Annotations = mapResult.Annotations,
@@ -640,6 +649,15 @@ internal class QueueService(
 
 			// Save submission to get ID
 			await db.SaveChangesAsync();
+
+			// Create movie file
+			db.MovieFiles.Add(new MovieFile
+			{
+				SubmissionId = submission.Id,
+				FileData = request.MovieFile,
+				FileExtension = mapResult.MovieExtension,
+				FileName = $"submission{submission.Id}"
+			});
 
 			// Create wiki page
 			await wikiPages.Add(new WikiCreateRequest
@@ -744,8 +762,7 @@ internal class QueueService(
 				MovieFileName = movieFileName,
 				AdditionalAuthors = submission.AdditionalAuthors,
 				Submission = submission,
-				MovieFile = await fileService.CopyZip(submission.MovieFile, movieFileName),
-				GameGoalId = submission.GameGoalId
+					GameGoalId = submission.GameGoalId
 			};
 
 			publication.PublicationUrls.AddStreaming(request.OnlineWatchingUrl, "");
@@ -767,6 +784,23 @@ internal class QueueService(
 
 			await db.SaveChangesAsync(); // Need an ID for the Title
 			publication.Title = publication.GenerateTitle();
+
+			// Create movie file for publication
+			var submissionMovieFile = await db.MovieFiles
+				.Where(mf => mf.SubmissionId == submission.Id)
+				.FirstOrDefaultAsync();
+
+			if (submissionMovieFile != null)
+			{
+				var publicationMovieFileData = await fileService.CopyZip(submissionMovieFile.FileData, movieFileName);
+				db.MovieFiles.Add(new MovieFile
+				{
+					PublicationId = publication.Id,
+					FileData = publicationMovieFileData,
+					FileExtension = submissionMovieFile.FileExtension,
+					FileName = movieFileName
+				});
+			}
 
 			var (screenshotPath, screenshotBytes) = await uploader.UploadScreenshot(publication.Id, request.Screenshot, request.ScreenshotDescription);
 

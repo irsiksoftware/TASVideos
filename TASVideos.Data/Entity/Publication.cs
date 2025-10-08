@@ -63,8 +63,7 @@ public class Publication : BaseEntity, ITimeable
 	public Submission? Submission { get; set; }
 	public ICollection<PublicationAuthor> Authors { get; init; } = [];
 
-	[ExcludeFromAutoHistory]
-	public byte[] MovieFile { get; set; } = [];
+	public ICollection<MovieFile> MovieFiles { get; init; } = [];
 
 	public string MovieFileName { get; set; } = "";
 
