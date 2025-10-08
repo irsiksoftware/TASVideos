@@ -90,6 +90,8 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int, UserClaim
 
 	public DbSet<MovieFile> MovieFiles { get; set; } = null!;
 
+	public DbSet<Report> Reports { get; set; } = null!;
+
 	public override int SaveChanges(bool acceptAllChangesOnSuccess)
 	{
 		PerformTrackingUpdates();
@@ -485,6 +487,27 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int, UserClaim
 			entity.HasIndex(e => e.RowId);
 			entity.HasIndex(e => e.TableName);
 			entity.HasIndex(e => e.UserId);
+		});
+
+		builder.Entity<Report>(entity =>
+		{
+			entity.HasOne(r => r.ForumPost)
+				.WithMany()
+				.HasForeignKey(r => r.ForumPostId)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			entity.HasOne(r => r.Reporter)
+				.WithMany()
+				.HasForeignKey(r => r.ReporterId)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			entity.HasOne(r => r.ResolvedByUser)
+				.WithMany()
+				.HasForeignKey(r => r.ResolvedByUserId)
+				.OnDelete(DeleteBehavior.Restrict);
+
+			entity.HasIndex(e => e.Resolved);
+			entity.HasIndex(e => e.ReportedOn);
 		});
 	}
 
