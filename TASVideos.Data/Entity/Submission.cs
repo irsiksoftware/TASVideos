@@ -40,9 +40,13 @@ public class Submission : BaseEntity, ITimeable
 	public ICollection<SubmissionStatusHistory> History { get; init; } = [];
 
 	[ExcludeFromAutoHistory]
+	[Obsolete("Use MovieFileId instead")]
 	public byte[] MovieFile { get; set; } = [];
 
 	public string? MovieExtension { get; set; }
+
+	public int? MovieFileId { get; set; }
+	public MovieFile? MovieFileData { get; set; }
 
 	public int? GameId { get; set; }
 	public Game.Game? Game { get; set; }

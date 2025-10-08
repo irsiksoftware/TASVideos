@@ -88,6 +88,8 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int, UserClaim
 
 	public DbSet<DeprecatedMovieFormat> DeprecatedMovieFormats { get; set; } = null!;
 
+	public DbSet<MovieFile> MovieFiles { get; set; } = null!;
+
 	public override int SaveChanges(bool acceptAllChangesOnSuccess)
 	{
 		PerformTrackingUpdates();

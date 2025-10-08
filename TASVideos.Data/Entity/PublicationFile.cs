@@ -17,9 +17,14 @@ public class PublicationFile : BaseEntity
 
 	public string? Description { get; set; }
 
+	[Obsolete("Use MovieFileId instead")]
 	public byte[]? FileData { get; set; }
 
+	[Obsolete("Use MovieFileId instead")]
 	public Compression? CompressionType { get; set; }
+
+	public int? MovieFileId { get; set; }
+	public MovieFile? MovieFileData { get; set; }
 }
 
 public static class PublicationFileExtensions

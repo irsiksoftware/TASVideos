@@ -13,6 +13,7 @@ public static class WebApplicationExtensions
 			.MapUsers()
 			.MapTags()
 			.MapClasses()
+			.MapMigrations()
 			.UseSwaggerUi(env)
 			.UseExceptionHandler(exceptionHandlerApp =>
 			{
