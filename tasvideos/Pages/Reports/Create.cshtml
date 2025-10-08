@@ -1,0 +1,17 @@
+@page
+@model TASVideos.Pages.Reports.CreateModel
+@{
+	ViewData.SetTitle("Report a Post");
+}
+<h1>Report a Post</h1>
+
+<form method="post">
+	<input type="hidden" asp-for="Input.ForumPostId" value="@Model.ForumPostId" />
+	<div class="mb-3">
+		<label asp-for="Input.Reason" class="form-label">Reason for Report</label>
+		<textarea asp-for="Input.Reason" class="form-control" rows="4" required></textarea>
+		<span asp-validation-for="Input.Reason" class="text-danger"></span>
+	</div>
+	<button type="submit" class="btn btn-primary">Submit Report</button>
+	<a asp-page="/Forum/Index" class="btn btn-secondary">Cancel</a>
+</form>

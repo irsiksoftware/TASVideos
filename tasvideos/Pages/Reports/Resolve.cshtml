@@ -1,0 +1,17 @@
+@page "{id:int}"
+@model TASVideos.Pages.Reports.ResolveModel
+@{
+	ViewData.SetTitle("Resolve Report");
+}
+<h1>Resolve Report</h1>
+
+<form method="post">
+	<input type="hidden" asp-for="Input.ReportId" value="@Model.Id" />
+	<div class="mb-3">
+		<label asp-for="Input.Resolution" class="form-label">Resolution Notes</label>
+		<textarea asp-for="Input.Resolution" class="form-control" rows="4" required></textarea>
+		<span asp-validation-for="Input.Resolution" class="text-danger"></span>
+	</div>
+	<button type="submit" class="btn btn-primary">Mark as Resolved</button>
+	<a asp-page="/Reports/Index" class="btn btn-secondary">Cancel</a>
+</form>
