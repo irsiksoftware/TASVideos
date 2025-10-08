@@ -1,9 +1,10 @@
-﻿using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 
 namespace TASVideos.Pages.Games;
 
 [AllowAnonymous]
-public class ListModel(ApplicationDbContext db) : BasePageModel
+public class ListModel(ApplicationDbContext db, IGamesConfigService gamesConfig) : BasePageModel
 {
 	[FromQuery]
 	[StringLength(50, MinimumLength = 3)]
@@ -33,11 +34,14 @@ public class ListModel(ApplicationDbContext db) : BasePageModel
 			.ToDropDownList())
 			.WithAnyEntry();
 
-		LetterList = (await db.Games
-			.Select(g => g.DisplayName.Substring(0, 1))
+		var allGames = await gamesConfig.GetAllGamesAsync();
+		LetterList = allGames
+			.Select(g => g.DisplayName.Length > 0 ? g.DisplayName.Substring(0, 1) : "")
 			.Distinct()
-			.ToDropDownList())
-			.WithAnyEntry();
+			.OrderBy(s => s)
+			.Select(s => new SelectListItem { Text = s, Value = s })
+			.ToList();
+		LetterList.Insert(0, new SelectListItem { Text = "Any", Value = "" });
 
 		GenreList = (await db.Genres
 			.Select(g => g.DisplayName)
@@ -58,10 +62,11 @@ public class ListModel(ApplicationDbContext db) : BasePageModel
 		return ToDropdownResult(items, includeEmpty);
 	}
 
-	public async Task<IActionResult> OnGetGameDropDownForSystem(int systemId, bool includeEmpty)
+	public Task<IActionResult> OnGetGameDropDownForSystem(int systemId, bool includeEmpty)
 	{
-		var items = await db.Games.ToDropDownList(systemId);
-		return ToDropdownResult(items, includeEmpty);
+		// Games are now read-only from configuration, cannot filter by system
+		var items = new List<SelectListItem>();
+		return Task.FromResult(ToDropdownResult(items, includeEmpty));
 	}
 
 	public async Task<IActionResult> OnGetVersionDropDownForGame(int gameId, int systemId, bool includeEmpty)
@@ -70,33 +75,28 @@ public class ListModel(ApplicationDbContext db) : BasePageModel
 		return ToDropdownResult(items, includeEmpty);
 	}
 
-	public async Task<IActionResult> OnGetGameGoalDropDownForGame(int gameId, bool includeEmpty)
+	public Task<IActionResult> OnGetGameGoalDropDownForGame(int gameId, bool includeEmpty)
 	{
-		var items = await db.GameGoals.ToDropDownList(gameId);
-		return ToDropdownResult(items, includeEmpty);
+		// GameGoals are now read-only from configuration
+		var items = new List<SelectListItem>();
+		return Task.FromResult(ToDropdownResult(items, includeEmpty));
 	}
 
 	private async Task<PageOf<GameEntry, GameListRequest>> GetPageOfGames(GameListRequest paging)
 	{
-		IQueryable<Game> query = db.Games
-			.ForSystemCode(paging.System)
-			.ForGenre(paging.Genre)
-			.ForGroup(paging.Group)
-			.Where(g => g.DisplayName.StartsWith(paging.StartsWith ?? ""));
+		// Games are now read-only from configuration, cannot query with complex filters
+		var allGames = await gamesConfig.GetAllGamesAsync();
+		var filteredGames = allGames
+			.Where(g => string.IsNullOrEmpty(paging.StartsWith) || g.DisplayName.StartsWith(paging.StartsWith))
+			.Select(g => new GameEntry
+			{
+				Id = g.Id,
+				Name = g.DisplayName,
+				Systems = []
+			})
+			.ToList();
 
-		if (!string.IsNullOrWhiteSpace(paging.SearchTerms))
-		{
-			db.ExtendTimeoutForSearch();
-			query = query.WebSearch(paging.SearchTerms);
-		}
-
-		return await query.Select(g => new GameEntry
-		{
-			Id = g.Id,
-			Name = g.DisplayName,
-			Systems = g.GameVersions.Select(v => v.System!.Code).ToList()
-		})
-		.SortedPageOf(paging);
+		return new PageOf<GameEntry, GameListRequest>(filteredGames, paging);
 	}
 
 	[PagingDefaults(PageSize = 50, Sort = "Name")]

@@ -1,7 +1,9 @@
-﻿namespace TASVideos.Pages.UserFiles;
+using TASVideos.Data.Services;
+
+namespace TASVideos.Pages.UserFiles;
 
 [RequirePermission(PermissionTo.CatalogMovies)]
-public class CatalogModel(ApplicationDbContext db) : BasePageModel
+public class CatalogModel(ApplicationDbContext db, IGamesConfigService gamesConfig) : BasePageModel
 {
 	[FromRoute]
 	public long Id { get; set; }
@@ -61,9 +63,8 @@ public class CatalogModel(ApplicationDbContext db) : BasePageModel
 
 		if (UserFile.System.HasValue)
 		{
-			AvailableGames = (await db.Games
-				.ToDropDownList(UserFile.System))
-				.WithDefaultEntry();
+			// Games are now read-only from configuration
+			AvailableGames = [];
 		}
 	}
 

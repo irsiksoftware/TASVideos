@@ -1,7 +1,9 @@
-﻿namespace TASVideos.Pages.UserFiles;
+using TASVideos.Data.Services;
+
+namespace TASVideos.Pages.UserFiles;
 
 [AllowAnonymous]
-public class GameModel(ApplicationDbContext db) : BasePageModel
+public class GameModel(ApplicationDbContext db, IGamesConfigService gamesConfig) : BasePageModel
 {
 	[FromRoute]
 	public int Id { get; set; }
@@ -11,7 +13,7 @@ public class GameModel(ApplicationDbContext db) : BasePageModel
 
 	public async Task<IActionResult> OnGet()
 	{
-		var game = await db.Games.Select(g => new { g.Id, g.DisplayName }).SingleOrDefaultAsync(g => g.Id == Id);
+		var game = await gamesConfig.GetGameByIdAsync(Id);
 		if (game is null)
 		{
 			return NotFound();

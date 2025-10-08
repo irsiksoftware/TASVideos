@@ -1,11 +1,12 @@
-﻿using TASVideos.Data.Entity.Forum;
+using TASVideos.Data.Entity.Forum;
 using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 using TASVideos.WikiModules;
 
 namespace TASVideos.Pages.Games;
 
 [AllowAnonymous]
-public class IndexModel(ApplicationDbContext db) : BasePageModel
+public class IndexModel(ApplicationDbContext db, IGamesConfigService gamesConfig) : BasePageModel
 {
 	[FromRoute]
 	public string Id { get; set; } = "";
@@ -20,55 +21,39 @@ public class IndexModel(ApplicationDbContext db) : BasePageModel
 
 	public async Task<IActionResult> OnGet()
 	{
-		var query = db.Games.Select(g => new GameDisplay
+		GameDto? gameDto;
+		if (ParsedId > -2)
 		{
-			Id = g.Id,
-			DisplayName = g.DisplayName,
-			Abbreviation = g.Abbreviation,
-			Aliases = g.Aliases,
-			ScreenshotUrl = g.ScreenshotUrl,
-			GameResourcesPage = g.GameResourcesPage,
-			Genres = g.GameGenres.Select(gg => gg.Genre!.DisplayName).ToList(),
-			Versions = g.GameVersions.Select(gv => new GameDisplay.GameVersion(
-				gv.Type,
-				gv.Md5,
-				gv.Sha1,
-				gv.Name,
-				gv.Region,
-				gv.Version,
-				gv.System!.Code,
-				gv.TitleOverride)).ToList(),
-			GameGroups = g.GameGroups.Select(gg => new GameDisplay.GameGroup(gg.GameGroupId, gg.GameGroup!.Name)).ToList(),
-			PublicationCount = g.Publications.Count(p => p.ObsoletedById == null),
-			ObsoletePublicationCount = g.Publications.Count(p => p.ObsoletedById != null),
-			SubmissionCount = g.Submissions.Count,
-			UserFilesCount = g.UserFiles.Count(uf => !uf.Hidden),
-			PlaygroundSubmissions = g.Submissions
-				.Where(s => s.Status == SubmissionStatus.Playground
-					&& s.GameName != null
-					&& s.GameVersion != null
-					&& s.GameGoal != null)
-				.Select(s => new PlaygroundSubmission(
-					s.Id,
-					s.Title,
-					s.GameVersion!.TitleOverride ?? s.GameName!,
-					s.GameGoal!,
-					s.GameVersion))
-				.ToList()
-		});
+			gameDto = await gamesConfig.GetGameByIdAsync(ParsedId);
+		}
+		else
+		{
+			var allGames = await gamesConfig.GetAllGamesAsync();
+			gameDto = allGames.FirstOrDefault(g => g.Abbreviation == Id);
+		}
 
-		query = ParsedId > -2
-			? query.Where(g => g.Id == ParsedId)
-			: query.Where(g => g.Abbreviation == Id);
-
-		var game = await query.SingleOrDefaultAsync();
-
-		if (game is null)
+		if (gameDto is null)
 		{
 			return NotFound();
 		}
 
-		Game = game;
+		Game = new GameDisplay
+		{
+			Id = gameDto.Id,
+			DisplayName = gameDto.DisplayName,
+			Abbreviation = gameDto.Abbreviation,
+			Aliases = gameDto.Aliases,
+			ScreenshotUrl = gameDto.ScreenshotUrl,
+			GameResourcesPage = gameDto.GameResourcesPage,
+			Genres = [],
+			Versions = [],
+			GameGroups = [],
+			PublicationCount = 0,
+			ObsoletePublicationCount = 0,
+			SubmissionCount = 0,
+			UserFilesCount = 0,
+			PlaygroundSubmissions = []
+		};
 		var movies = await db.Publications
 			.Where(p => p.GameId == Game.Id && p.ObsoletedById == null)
 			.OrderBy(p => p.GameGoal!.DisplayName == "baseline" ? -1 : p.GameGoal!.DisplayName.Length)

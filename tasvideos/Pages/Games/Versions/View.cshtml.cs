@@ -1,9 +1,10 @@
-﻿using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 
 namespace TASVideos.Pages.Games.Versions;
 
 [AllowAnonymous]
-public class ViewModel(ApplicationDbContext db) : BasePageModel
+public class ViewModel(ApplicationDbContext db, IGamesConfigService gamesConfig) : BasePageModel
 {
 	[FromRoute]
 	public int GameId { get; set; }
@@ -18,17 +19,13 @@ public class ViewModel(ApplicationDbContext db) : BasePageModel
 
 	public async Task<IActionResult> OnGet()
 	{
-		var game = await db.Games
-			.Where(g => g.Id == GameId)
-			.Select(g => new { g.Id, g.DisplayName })
-			.SingleOrDefaultAsync();
-
-		if (game is null)
+		var gameDto = await gamesConfig.GetGameByIdAsync(GameId);
+		if (gameDto is null)
 		{
 			return NotFound();
 		}
 
-		Game = game.DisplayName;
+		Game = gameDto.DisplayName;
 
 		var version = await db.GameVersions
 			.Where(v => v.Id == Id && v.Game!.Id == GameId)

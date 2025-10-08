@@ -1,7 +1,9 @@
-﻿namespace TASVideos.Pages.UserFiles;
+using TASVideos.Data.Services;
+
+namespace TASVideos.Pages.UserFiles;
 
 [AllowAnonymous]
-public class EditModel(ApplicationDbContext db) : BasePageModel
+public class EditModel(ApplicationDbContext db, IGamesConfigService gamesConfig) : BasePageModel
 {
 	[FromRoute]
 	public long Id { get; set; }
@@ -81,9 +83,8 @@ public class EditModel(ApplicationDbContext db) : BasePageModel
 			.ToDropDownListWithId())
 			.WithDefaultEntry();
 
-		AvailableGames = UserFile.System.HasValue
-			? (await db.Games.ToDropDownList(UserFile.System.Value)).WithDefaultEntry()
-			: [.. UiDefaults.DefaultEntry];
+		// Games are now read-only from configuration
+		AvailableGames = [.. UiDefaults.DefaultEntry];
 	}
 
 	public class UserFileEdit

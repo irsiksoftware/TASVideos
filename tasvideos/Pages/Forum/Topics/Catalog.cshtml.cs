@@ -1,7 +1,9 @@
-﻿namespace TASVideos.Pages.Forum.Topics;
+using TASVideos.Data.Services;
+
+namespace TASVideos.Pages.Forum.Topics;
 
 [RequirePermission(PermissionTo.CatalogMovies)]
-public class CatalogModel(ApplicationDbContext db) : BasePageModel
+public class CatalogModel(ApplicationDbContext db, IGamesConfigService gamesConfig) : BasePageModel
 {
 	[FromRoute]
 	public int Id { get; set; }
@@ -65,8 +67,8 @@ public class CatalogModel(ApplicationDbContext db) : BasePageModel
 
 		if (GameId.HasValue)
 		{
-			var gameExists = GameId.HasValue && await db.Games.AnyAsync(g => g.Id == GameId);
-			if (!gameExists)
+			var game = await gamesConfig.GetGameByIdAsync(GameId.Value);
+			if (game is null)
 			{
 				return BadRequest($"Game with ID {GameId.Value} Not Found");
 			}
@@ -86,9 +88,8 @@ public class CatalogModel(ApplicationDbContext db) : BasePageModel
 
 		if (SystemId.HasValue)
 		{
-			AvailableGames = (await db.Games
-				.ToDropDownList(SystemId.Value))
-				.WithDefaultEntry();
+			// Games are now read-only from configuration
+			AvailableGames = [];
 		}
 	}
 }

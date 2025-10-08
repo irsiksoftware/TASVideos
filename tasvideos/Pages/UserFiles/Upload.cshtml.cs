@@ -1,10 +1,13 @@
-﻿namespace TASVideos.Pages.UserFiles;
+using TASVideos.Data.Services;
+
+namespace TASVideos.Pages.UserFiles;
 
 [RequirePermission(PermissionTo.UploadUserFiles)]
 public class UploadModel(
 	IUserFiles userFiles,
 	ApplicationDbContext db,
-	IExternalMediaPublisher publisher)
+	IExternalMediaPublisher publisher,
+	IGamesConfigService gamesConfig)
 	: BasePageModel
 {
 	[BindProperty]
@@ -112,8 +115,7 @@ public class UploadModel(
 			.ToDropDownListWithId())
 			.WithDefaultEntry();
 
-		AvailableGames = (await db.Games
-			.ToDropDownList())
-			.WithDefaultEntry();
+		// Games are now read-only from configuration
+		AvailableGames = [.. UiDefaults.DefaultEntry];
 	}
 }

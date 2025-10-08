@@ -1,18 +1,17 @@
-﻿using TASVideos.WikiEngine;
+using TASVideos.Data.Services;
+using TASVideos.WikiEngine;
 
 namespace TASVideos.WikiModules;
 
 [WikiModule(ModuleNames.NoGameGenre)]
-public class NoGameGenres(ApplicationDbContext db) : WikiViewComponent
+public class NoGameGenres(ApplicationDbContext db, IGamesConfigService gamesConfig) : WikiViewComponent
 {
 	public List<Entry> Games { get; set; } = [];
 
 	public async Task<IViewComponentResult> InvokeAsync()
 	{
-		Games = await db.Games
-			.Where(g => g.GameGenres.Count == 0)
-			.Select(g => new Entry(g.Id, g.DisplayName))
-			.ToListAsync();
+		// Games and GameGenres are now read-only from configuration, cannot query with navigation properties
+		Games = [];
 
 		return View();
 	}

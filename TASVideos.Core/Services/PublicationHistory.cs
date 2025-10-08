@@ -1,4 +1,6 @@
-﻿namespace TASVideos.Core.Services;
+﻿using TASVideos.Data.Services;
+
+namespace TASVideos.Core.Services;
 
 public interface IPublicationHistory
 {
@@ -15,11 +17,11 @@ public interface IPublicationHistory
 	Task<PublicationHistoryGroup?> ForGameByPublication(int publicationId);
 }
 
-internal class PublicationHistory(ApplicationDbContext db) : IPublicationHistory
+internal class PublicationHistory(ApplicationDbContext db, IGamesConfigService gamesConfig) : IPublicationHistory
 {
 	public async Task<PublicationHistoryGroup?> ForGame(int gameId)
 	{
-		var game = await db.Games.FindAsync(gameId);
+		var game = await gamesConfig.GetGameByIdAsync(gameId);
 
 		if (game is null)
 		{

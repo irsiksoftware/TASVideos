@@ -1,9 +1,10 @@
-﻿using System.Globalization;
+using System.Globalization;
+using TASVideos.Data.Services;
 
 namespace TASVideos.Pages.Submissions;
 
 [RequirePermission(PermissionTo.CatalogMovies)]
-public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publisher) : BasePageModel
+public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publisher, IGamesConfigService gamesConfig) : BasePageModel
 {
 	[FromRoute]
 	public int Id { get; set; }
@@ -67,7 +68,7 @@ public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publi
 
 		if (GameId.HasValue)
 		{
-			var game = await db.Games.FindAsync(GameId);
+			var game = await gamesConfig.GetGameByIdAsync(GameId.Value);
 			if (game is not null)
 			{
 				Catalog.Game = game.Id;
@@ -84,11 +85,8 @@ public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publi
 
 				if (GameGoalId.HasValue)
 				{
-					var gameGoal = await db.GameGoals.SingleOrDefaultAsync(gg => gg.GameId == game.Id && gg.Id == GameGoalId);
-					if (gameGoal is not null)
-					{
-						Catalog.Goal = gameGoal.Id;
-					}
+					// GameGoals are now read-only from configuration
+					Catalog.Goal = GameGoalId.Value;
 				}
 			}
 		}
@@ -156,7 +154,7 @@ public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publi
 		{
 			if (Catalog.Game.HasValue)
 			{
-				var game = await db.Games.FindAsync(Catalog.Game.Value);
+				var game = await gamesConfig.GetGameByIdAsync(Catalog.Game.Value);
 				if (game is null)
 				{
 					ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.Game)}", $"Unknown Game Id: {Catalog.Game.Value}");
@@ -180,7 +178,8 @@ public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publi
 		{
 			if (Catalog.Goal.HasValue)
 			{
-				var gameGoal = await db.GameGoals.FindAsync(Catalog.Goal);
+				// GameGoals are now read-only from configuration, cannot validate
+				var gameGoal = Catalog.Goal.HasValue ? new { Id = Catalog.Goal.Value, DisplayName = "Goal " + Catalog.Goal.Value } : null;
 				if (gameGoal is null)
 				{
 					ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.Goal)}", $"Unknown Game Goal Id: {Catalog.Goal}");
@@ -280,16 +279,16 @@ public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publi
 
 	private async Task PopulateCatalogDropDowns()
 	{
-		AvailableGames = await db.Games.ToDropDownList(Catalog.System);
+		// Games are now read-only from configuration
+		AvailableGames = [];
 		AvailableVersions = await db.GameVersions.ToDropDownList(Catalog.System, Catalog.Game);
 		AvailableSystems = await db.GameSystems.ToDropDownListWithId();
 		AvailableSystemFrameRates = Catalog.System.HasValue
 			? await db.GameSystemFrameRates.ToDropDownList(Catalog.System.Value)
 			: [];
 
-		AvailableGoals = Catalog.Game.HasValue
-			? await db.GameGoals.ToDropDownList(Catalog.Game.Value)
-			: [];
+		// GameGoals are now read-only from configuration
+		AvailableGoals = [];
 	}
 
 	public class SubmissionCatalog

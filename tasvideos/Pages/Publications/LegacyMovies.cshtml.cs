@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using TASVideos.Data.Services;
 
 namespace TASVideos.Pages.Publications;
 
 // Handles legacy movies.cgi links
 [AllowAnonymous]
-public class LegacyMoviesModel(ApplicationDbContext db) : PageModel
+public class LegacyMoviesModel(ApplicationDbContext db, IGamesConfigService gamesConfig) : PageModel
 {
 	[FromQuery]
 	public string? Name { get; set; }
@@ -31,7 +32,8 @@ public class LegacyMoviesModel(ApplicationDbContext db) : PageModel
 		if (!string.IsNullOrWhiteSpace(Name))
 		{
 			// Movies.cgi only supported a single game name
-			var game = await db.Games.FirstOrDefaultAsync(g => g.DisplayName == Name || g.Abbreviation == Name);
+			var allGames = await gamesConfig.GetAllGamesAsync();
+			var game = allGames.FirstOrDefault(g => g.DisplayName == Name || g.Abbreviation == Name);
 			if (game is not null)
 			{
 				tokens.Add(game.Id + "G");

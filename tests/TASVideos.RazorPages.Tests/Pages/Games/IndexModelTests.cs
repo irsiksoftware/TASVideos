@@ -1,4 +1,5 @@
-﻿using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 using TASVideos.Pages.Games;
 using TASVideos.Tests.Base;
 
@@ -11,7 +12,8 @@ public class IndexModelTests : TestDbBase
 
 	public IndexModelTests()
 	{
-		_model = new IndexModel(_db);
+		var gamesConfig = new GamesConfigService();
+		_model = new IndexModel(_db, gamesConfig);
 	}
 
 	[TestMethod]

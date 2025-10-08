@@ -1,4 +1,5 @@
-﻿using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 using TASVideos.Pages.Games.Versions;
 using TASVideos.Tests.Base;
 
@@ -11,7 +12,8 @@ public class ViewModelTests : TestDbBase
 
 	public ViewModelTests()
 	{
-		_model = new ViewModel(_db);
+		var gamesConfig = new GamesConfigService();
+		_model = new ViewModel(_db, gamesConfig);
 	}
 
 	[TestMethod]

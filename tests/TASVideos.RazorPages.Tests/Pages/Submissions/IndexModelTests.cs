@@ -1,5 +1,6 @@
-﻿using TASVideos.Core.Services;
+using TASVideos.Core.Services;
 using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 using TASVideos.Pages.Submissions;
 using TASVideos.Tests.Base;
 
@@ -14,7 +15,8 @@ public class IndexModelTests : TestDbBase
 	public IndexModelTests()
 	{
 		_gameSystemService = Substitute.For<IGameSystemService>();
-		_page = new IndexModel(_db, _gameSystemService);
+		var gamesConfig = new GamesConfigService();
+		_page = new IndexModel(_db, _gameSystemService, gamesConfig);
 	}
 
 	[TestMethod]

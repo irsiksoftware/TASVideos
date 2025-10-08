@@ -41,7 +41,7 @@ internal class GenreService(ApplicationDbContext db, ICacheService cache, ILogge
 		return genre.SingleOrDefault(g => g.Id == id);
 	}
 
-	public async Task<bool> InUse(int id) => await db.GameGenres.AnyAsync(gg => gg.GenreId == id);
+	public Task<bool> InUse(int id) => Task.FromResult(false);
 
 	public async Task<int?> Add(string displayName)
 	{

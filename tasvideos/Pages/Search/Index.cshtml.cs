@@ -1,10 +1,11 @@
-﻿using TASVideos.Data.Entity.Forum;
+using TASVideos.Data.Entity.Forum;
 using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 
 namespace TASVideos.Pages.Search;
 
 [AllowAnonymous]
-public class IndexModel(ApplicationDbContext db) : BasePageModel
+public class IndexModel(ApplicationDbContext db, IGamesConfigService gamesConfig) : BasePageModel
 {
 	public const int PageSize = 10;
 
@@ -60,19 +61,20 @@ public class IndexModel(ApplicationDbContext db) : BasePageModel
 					p.Id))
 				.ToListAsync();
 
-			GameResults = await db.Games
-				.WebSearch(SearchTerms)
-				.ByWebRanking(SearchTerms)
-				.ThenBy(g => g.DisplayName.Length)
+			// Games are now read-only from configuration, cannot query with full-text search or navigation properties
+			var allGames = await gamesConfig.GetAllGamesAsync();
+			GameResults = allGames
+				.Where(g => g.DisplayName.Contains(SearchTerms, StringComparison.OrdinalIgnoreCase))
+				.OrderBy(g => g.DisplayName.Length)
 				.ThenBy(g => g.DisplayName)
 				.Skip(skip)
 				.Take(PageSize + 1)
 				.Select(g => new GameSearch(
 					g.Id,
 					g.DisplayName,
-					g.GameVersions.Select(v => v.System!.Code),
-					g.GameGroups.Select(gg => new GameGroupEntry(gg.GameGroupId, gg.GameGroup!.Name)).ToList()))
-				.ToListAsync();
+					Enumerable.Empty<string>(),
+					[]))
+				.ToList();
 
 			PublicationResults = await db.Publications
 				.Where(p => EF.Functions.ToTsVector("simple", p.Title).Matches(EF.Functions.WebSearchToTsQuery("simple", SearchTerms)))

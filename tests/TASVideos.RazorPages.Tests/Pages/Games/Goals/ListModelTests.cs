@@ -1,4 +1,5 @@
-﻿using TASVideos.Pages.Games.Goals;
+using TASVideos.Data.Services;
+using TASVideos.Pages.Games.Goals;
 
 namespace TASVideos.RazorPages.Tests.Pages.Games.Goals;
 
@@ -9,7 +10,8 @@ public class ListModelTests : BasePageModelTests
 
 	public ListModelTests()
 	{
-		_model = new ListModel(_db)
+		var gamesConfig = new GamesConfigService();
+		_model = new ListModel(_db, gamesConfig)
 		{
 			PageContext = TestPageContext()
 		};

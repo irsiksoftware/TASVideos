@@ -1,10 +1,11 @@
-﻿using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 using TASVideos.WikiEngine;
 
 namespace TASVideos.WikiModules;
 
 [WikiModule(ModuleNames.MoviesGameList)]
-public class MoviesGameList(ApplicationDbContext db) : WikiViewComponent
+public class MoviesGameList(ApplicationDbContext db, IGamesConfigService gamesConfig) : WikiViewComponent
 {
 	public int? SystemId { get; set; }
 	public string? SystemCode { get; set; }
@@ -21,16 +22,14 @@ public class MoviesGameList(ApplicationDbContext db) : WikiViewComponent
 
 		SystemCode = systemObj.Code;
 
-		Games = await db.Games
-			.ForSystem(SystemId.Value)
+		// Games are now read-only from configuration, cannot query with navigation properties
+		var allGames = await gamesConfig.GetAllGamesAsync();
+		Games = allGames
 			.Select(g => new GameEntry(
 				g.Id,
 				g.DisplayName,
-				g.Publications
-					.Where(p => p.ObsoletedById == null)
-					.Select(p => p.Id)
-					.ToList()))
-			.ToListAsync();
+				[]))
+			.ToList();
 
 		return View();
 	}

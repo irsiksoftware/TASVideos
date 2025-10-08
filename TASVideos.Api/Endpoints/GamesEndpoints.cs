@@ -1,4 +1,5 @@
 ﻿using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 
 namespace TASVideos.Api;
 
@@ -9,13 +10,14 @@ internal static class GamesEndpoints
 		var group = app.MapApiGroup("Games");
 
 		group
-			.MapGet("{id:int}", async (int id, ApplicationDbContext db) => ApiResults.OkOr404(
-				await db.Games
-					.ToGamesResponse()
-					.SingleOrDefaultAsync(g => g.Id == id)))
-			.ProducesFromId<GamesResponse>("game");
+			.MapGet("{id:int}", async (int id, IGamesConfigService gamesConfig) =>
+			{
+				var game = await gamesConfig.GetGameByIdAsync(id);
+				return game != null ? Results.Ok(game) : Results.NotFound();
+			})
+			.ProducesFromId<GameDto>("game");
 
-		group.MapGet("", async ([AsParameters] GamesRequest request, HttpContext context, ApplicationDbContext db) =>
+		group.MapGet("", async ([AsParameters] GamesRequest request, HttpContext context, IGamesConfigService gamesConfig) =>
 		{
 			var validationError = ApiResults.Validate(request, context);
 			if (validationError is not null)
@@ -23,16 +25,12 @@ internal static class GamesEndpoints
 				return validationError;
 			}
 
-			var games = (await db.Games.ForSystemCodes([.. request.SystemCodes])
-					.ToGamesResponse()
-					.SortAndPaginate(request)
-					.ToListAsync())
-				.FieldSelect(request);
+			var games = await gamesConfig.GetAllGamesAsync();
 
 			return Results.Ok(games);
 		})
 		.Receives<GamesRequest>()
-		.ProducesList<GamesResponse>("a list of games");
+		.ProducesList<GameDto>("a list of games");
 
 		return app;
 	}

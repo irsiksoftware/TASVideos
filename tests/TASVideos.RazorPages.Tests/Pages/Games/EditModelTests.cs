@@ -1,6 +1,7 @@
-﻿using TASVideos.Core.Services.ExternalMediaPublisher;
+using TASVideos.Core.Services.ExternalMediaPublisher;
 using TASVideos.Core.Services.Wiki;
 using TASVideos.Core.Settings;
+using TASVideos.Data.Services;
 using TASVideos.Pages.Games;
 using TASVideos.Services;
 
@@ -19,7 +20,8 @@ public class EditModelTests : BasePageModelTests
 		_publisher = Substitute.For<IExternalMediaPublisher>();
 		_publisher.ToAbsolute(Arg.Any<string>()).Returns(x => "https://tasvideos.org" + x.Arg<string>());
 		var settings = new AppSettings { BaseUrl = "https://tasvideos.org" };
-		_model = new EditModel(_db, _wikiPages, _publisher, settings)
+		var gamesConfig = new GamesConfigService();
+		_model = new EditModel(_db, _wikiPages, _publisher, settings, gamesConfig)
 		{
 			PageContext = TestPageContext()
 		};

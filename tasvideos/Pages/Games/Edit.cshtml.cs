@@ -1,6 +1,7 @@
-﻿using TASVideos.Core.Services.Wiki;
+using TASVideos.Core.Services.Wiki;
 using TASVideos.Core.Settings;
 using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 
 namespace TASVideos.Pages.Games;
 
@@ -9,7 +10,8 @@ public class EditModel(
 	ApplicationDbContext db,
 	IWikiPages wikiPages,
 	IExternalMediaPublisher publisher,
-	AppSettings settings)
+	AppSettings settings,
+	IGamesConfigService gamesConfig)
 	: BasePageModel
 {
 	private readonly string _baseUrl = settings.BaseUrl;
@@ -29,26 +31,22 @@ public class EditModel(
 	{
 		if (Id.HasValue)
 		{
-			var game = await db.Games
-				.Where(g => g.Id == Id)
-				.Select(g => new GameEdit
-				{
-					DisplayName = g.DisplayName,
-					Abbreviation = g.Abbreviation,
-					Aliases = g.Aliases,
-					ScreenshotUrl = g.ScreenshotUrl,
-					GameResourcesPage = g.GameResourcesPage,
-					Genres = g.GameGenres.Select(gg => gg.GenreId).ToList(),
-					Groups = g.GameGroups.Select(gg => gg.GameGroupId).ToList()
-				})
-				.SingleOrDefaultAsync();
-
-			if (game is null)
+			var gameDto = await gamesConfig.GetGameByIdAsync(Id.Value);
+			if (gameDto is null)
 			{
 				return NotFound();
 			}
 
-			Game = game;
+			Game = new GameEdit
+			{
+				DisplayName = gameDto.DisplayName,
+				Abbreviation = gameDto.Abbreviation,
+				Aliases = gameDto.Aliases,
+				ScreenshotUrl = gameDto.ScreenshotUrl,
+				GameResourcesPage = gameDto.GameResourcesPage,
+				Genres = [],
+				Groups = []
+			};
 		}
 
 		await Initialize();
@@ -75,9 +73,13 @@ public class EditModel(
 			}
 		}
 
-		if (Game.Abbreviation is not null && await db.Games.AnyAsync(g => g.Id != Id && g.Abbreviation == Game.Abbreviation))
+		if (Game.Abbreviation is not null)
 		{
-			ModelState.AddModelError($"{nameof(Game)}.{nameof(Game.Abbreviation)}", $"Abbreviation {Game.Abbreviation} already exists");
+			var allGames = await gamesConfig.GetAllGamesAsync();
+			if (allGames.Any(g => g.Id != Id && g.Abbreviation == Game.Abbreviation))
+			{
+				ModelState.AddModelError($"{nameof(Game)}.{nameof(Game.Abbreviation)}", $"Abbreviation {Game.Abbreviation} already exists");
+			}
 		}
 
 		if (!ModelState.IsValid)
@@ -86,86 +88,17 @@ public class EditModel(
 			return Page();
 		}
 
-		Game? game;
-		var action = "created";
-		if (Id.HasValue)
-		{
-			action = "updated";
-			game = await db.Games
-				.Include(g => g.GameGenres)
-				.Include(g => g.GameGroups)
-				.SingleOrDefaultAsync(g => g.Id == Id.Value);
-			if (game is null)
-			{
-				return NotFound();
-			}
-		}
-		else
-		{
-			game = db.Games.Add(new Game()).Entity;
-			db.GameGoals.Add(new GameGoal
-			{
-				Game = game,
-				DisplayName = "baseline"
-			});
-		}
-
-		game.DisplayName = Game.DisplayName;
-		game.Abbreviation = Game.Abbreviation;
-		game.Aliases = Game.Aliases;
-		game.ScreenshotUrl = Game.ScreenshotUrl;
-		game.GameResourcesPage = Game.GameResourcesPage;
-		game.GameGenres.SetGenres(Game.Genres);
-		game.GameGroups.SetGroups(Game.Groups);
-		var saveResult = await db.TrySaveChanges();
-		SetMessage(saveResult, $"Game {game.DisplayName} {action}", $"Unable to update Game {game.DisplayName}");
-		if (saveResult.IsSuccess())
-		{
-			await publisher.SendGameManagement(
-				$"Game [{game.DisplayName}]({{0}}) {action} by {User.Name()}",
-				"",
-				$"{game.Id}G");
-		}
-
-		return string.IsNullOrWhiteSpace(HttpContext.Request.ReturnUrl())
-			? RedirectToPage("Index", new { game.Id })
-			: BaseReturnUrlRedirect(new() { ["GameId"] = game.Id.ToString() });
+		// Games are now read-only from configuration, cannot update
+		ErrorStatusMessage("Games are read-only and cannot be modified");
+		await Initialize();
+		return Page();
 	}
 
-	public async Task<IActionResult> OnPostDelete()
+	public Task<IActionResult> OnPostDelete()
 	{
-		if (!Id.HasValue)
-		{
-			return NotFound();
-		}
-
-		if (!User.Has(PermissionTo.DeleteGameEntries))
-		{
-			return AccessDenied();
-		}
-
-		if (!await CanBeDeleted())
-		{
-			ErrorStatusMessage($"Unable to delete Game {Id}, game is used by a publication or submission.");
-			return BasePageRedirect("List");
-		}
-
-		var game = await db.Games.FindAsync(Id);
-		if (game is null)
-		{
-			return NotFound();
-		}
-
-		db.Games.Remove(game);
-		var saveMessage = $"Game #{Id} {game.DisplayName} deleted";
-		var saveResult = await db.TrySaveChanges();
-		SetMessage(saveResult, saveMessage, $"Unable to delete Game {Id}");
-		if (saveResult.IsSuccess())
-		{
-			await publisher.SendMessage(PostGroups.Game, $"{saveMessage} by {User.Name()}");
-		}
-
-		return BasePageRedirect("List");
+		// Games are now read-only from configuration, cannot delete
+		ErrorStatusMessage("Games are read-only and cannot be deleted");
+		return Task.FromResult<IActionResult>(BasePageRedirect("List"));
 	}
 
 	private async Task Initialize()

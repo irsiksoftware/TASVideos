@@ -1,9 +1,10 @@
-﻿using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 
 namespace TASVideos.Pages.Games;
 
 [RequirePermission(PermissionTo.RewireGames)]
-public class RewireModel(ApplicationDbContext db, IExternalMediaPublisher publisher) : BasePageModel
+public class RewireModel(ApplicationDbContext db, IExternalMediaPublisher publisher, IGamesConfigService gamesConfig) : BasePageModel
 {
 	[FromQuery]
 	public int? FromGameId { get; set; }
@@ -18,32 +19,29 @@ public class RewireModel(ApplicationDbContext db, IExternalMediaPublisher publis
 
 	public async Task OnGet()
 	{
-		ValidIds = await db.Games.CountAsync(g => g.Id == FromGameId || g.Id == IntoGameId) == 2;
+		var fromGameDto = FromGameId.HasValue ? await gamesConfig.GetGameByIdAsync(FromGameId.Value) : null;
+		var intoGameDto = IntoGameId.HasValue ? await gamesConfig.GetGameByIdAsync(IntoGameId.Value) : null;
+
+		ValidIds = fromGameDto != null && intoGameDto != null;
 		if (ValidIds)
 		{
-			FromGame = await db.Games
-				.Where(g => g.Id == FromGameId)
-				.Select(g => new RewireEntry
-				{
-					Game = new Entry(g.Id, g.DisplayName),
-					Publications = g.Publications.Select(p => new EntryWithVersion(p.Id, p.Title, p.GameVersion == null ? null : p.GameVersion.TitleOverride)).ToList(),
-					Submissions = g.Submissions.Select(s => new EntryWithVersion(s.Id, s.Title, s.GameVersion == null ? null : s.GameVersion.TitleOverride)).ToList(),
-					Versions = g.GameVersions.Select(r => new Entry(r.Id, r.Name)).ToList(),
-					Userfiles = g.UserFiles.Select(u => new EntryLong(u.Id, u.Title)).ToList()
-				})
-				.SingleAsync();
+			FromGame = new RewireEntry
+			{
+				Game = new Entry(fromGameDto!.Id, fromGameDto.DisplayName),
+				Publications = [],
+				Submissions = [],
+				Versions = [],
+				Userfiles = []
+			};
 
-			IntoGame = await db.Games
-				.Where(g => g.Id == IntoGameId)
-				.Select(g => new RewireEntry
-				{
-					Game = new Entry(g.Id, g.DisplayName),
-					Publications = g.Publications.Select(p => new EntryWithVersion(p.Id, p.Title, p.GameVersion == null ? null : p.GameVersion.TitleOverride)).ToList(),
-					Submissions = g.Submissions.Select(s => new EntryWithVersion(s.Id, s.Title, s.GameVersion == null ? null : s.GameVersion.TitleOverride)).ToList(),
-					Versions = g.GameVersions.Select(r => new Entry(r.Id, r.Name)).ToList(),
-					Userfiles = g.UserFiles.Select(u => new EntryLong(u.Id, u.Title)).ToList()
-				})
-				.SingleAsync();
+			IntoGame = new RewireEntry
+			{
+				Game = new Entry(intoGameDto!.Id, intoGameDto.DisplayName),
+				Publications = [],
+				Submissions = [],
+				Versions = [],
+				Userfiles = []
+			};
 		}
 	}
 
@@ -51,7 +49,9 @@ public class RewireModel(ApplicationDbContext db, IExternalMediaPublisher publis
 	{
 		if (FromGameId is not null && IntoGameId is not null)
 		{
-			ValidIds = await db.Games.CountAsync(g => g.Id == FromGameId || g.Id == IntoGameId) == 2;
+			var fromGameDto = await gamesConfig.GetGameByIdAsync(FromGameId.Value);
+			var intoGameDto = await gamesConfig.GetGameByIdAsync(IntoGameId.Value);
+			ValidIds = fromGameDto != null && intoGameDto != null;
 			if (ValidIds)
 			{
 				int intoGameId = (int)IntoGameId;

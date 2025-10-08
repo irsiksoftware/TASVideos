@@ -50,11 +50,6 @@ internal class GameSystemService(ApplicationDbContext db, ICacheService cache) :
 
 	public async Task<bool> InUse(int id)
 	{
-		if (await db.GameVersions.AnyAsync(r => r.SystemId == id))
-		{
-			return true;
-		}
-
 		if (await db.Publications.AnyAsync(p => p.SystemId == id))
 		{
 			return true;

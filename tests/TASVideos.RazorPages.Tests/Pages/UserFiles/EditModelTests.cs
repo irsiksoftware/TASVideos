@@ -1,4 +1,5 @@
-﻿using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 using TASVideos.Pages.UserFiles;
 using TASVideos.Tests.Base;
 
@@ -11,7 +12,8 @@ public class EditModelTests : TestDbBase
 
 	public EditModelTests()
 	{
-		_page = new EditModel(_db);
+		var gamesConfig = new GamesConfigService();
+		_page = new EditModel(_db, gamesConfig);
 	}
 
 	[TestMethod]

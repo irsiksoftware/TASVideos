@@ -158,14 +158,13 @@ public class TestDbContext(DbContextOptions<ApplicationDbContext> options, TestD
 		submission.Status = SubmissionStatus.PublicationUnderway;
 		submission.SyncedOn = DateTime.UtcNow;
 
-		var game = Games.Add(new Game { DisplayName = "Test Game" }).Entity;
-		var gameVersion = GameVersions.Add(new GameVersion { Game = game, Name = "Test Version", System = submission.System }).Entity;
-		var gameGoal = GameGoals.Add(new GameGoal { Game = game, DisplayName = "Test Goal" }).Entity;
+		// Games, GameVersions, and GameGoals tables have been removed
+		var gameVersion = GameVersions.Add(new GameVersion { GameId = 1, Name = "Test Version", System = submission.System }).Entity;
 		var pubClassId = (PublicationClasses.Max(gs => (int?)gs.Id) ?? 0) + 1;
 		var pubClass = PublicationClasses.Add(new PublicationClass { Id = pubClassId, Name = "Test" }).Entity;
-		submission.Game = game;
+		submission.GameId = 1;
 		submission.GameVersion = gameVersion;
-		submission.GameGoal = gameGoal;
+		submission.GameGoalId = 1;
 		submission.IntendedClass = pubClass;
 
 		SaveChanges();

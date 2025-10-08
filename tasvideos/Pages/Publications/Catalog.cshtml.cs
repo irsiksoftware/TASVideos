@@ -1,9 +1,10 @@
-﻿using System.Globalization;
+using System.Globalization;
+using TASVideos.Data.Services;
 
 namespace TASVideos.Pages.Publications;
 
 [RequirePermission(PermissionTo.CatalogMovies)]
-public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publisher) : BasePageModel
+public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publisher, IGamesConfigService gamesConfig) : BasePageModel
 {
 	[FromRoute]
 	public int Id { get; set; }
@@ -63,7 +64,7 @@ public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publi
 
 		if (GameId.HasValue)
 		{
-			var game = await db.Games.FindAsync(GameId);
+			var game = await gamesConfig.GetGameByIdAsync(GameId.Value);
 			if (game is not null)
 			{
 				Catalog.Game = game.Id;
@@ -78,13 +79,10 @@ public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publi
 					}
 				}
 
+				// GameGoals are now read-only from configuration
 				if (GameGoalId.HasValue)
 				{
-					var gameGoal = await db.GameGoals.SingleOrDefaultAsync(gg => gg.GameId == game.Id && gg.Id == GameGoalId);
-					if (gameGoal is not null)
-					{
-						Catalog.Goal = gameGoal.Id;
-					}
+					Catalog.Goal = GameGoalId.Value;
 				}
 			}
 		}
@@ -149,32 +147,24 @@ public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publi
 
 		if (publication.GameId != Catalog.Game)
 		{
-			var game = await db.Games.FindAsync(Catalog.Game);
+			var game = await gamesConfig.GetGameByIdAsync(Catalog.Game);
 			if (game is null)
 			{
-				ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.Game)}", $"Unknown System Id: {Catalog.Game}");
+				ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.Game)}", $"Unknown Game Id: {Catalog.Game}");
 			}
 			else
 			{
 				externalMessages.Add($"Game changed from \"{publication.Game!.DisplayName}\" to \"{game.DisplayName}\"");
 				publication.GameId = Catalog.Game;
-				publication.Game = game;
+				// Note: Cannot set navigation property from DTO
 			}
 		}
 
 		if (publication.GameGoalId != Catalog.Goal)
 		{
-			var gameGoal = await db.GameGoals.FindAsync(Catalog.Goal);
-			if (gameGoal is null)
-			{
-				ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.Goal)}", $"Unknown Game Goal Id: {Catalog.Goal}");
-			}
-			else
-			{
-				externalMessages.Add($"Game Goal changed from \"{publication.GameGoal!.DisplayName}\" to \"{gameGoal.DisplayName}\"");
-				publication.GameGoalId = Catalog.Goal;
-				publication.GameGoal = gameGoal;
-			}
+			// GameGoals are now read-only from configuration, cannot validate
+			externalMessages.Add($"Game Goal changed from \"{publication.GameGoal!.DisplayName}\" to goal ID {Catalog.Goal}");
+			publication.GameGoalId = Catalog.Goal;
 		}
 
 		if (publication.GameVersionId != Catalog.GameVersion)
@@ -217,10 +207,12 @@ public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publi
 	private async Task PopulateCatalogDropDowns(int gameId, int systemId)
 	{
 		AvailableVersions = (await db.GameVersions.ToDropDownList(systemId, gameId)).WithDefaultEntry();
-		AvailableGames = await db.Games.ToDropDownList(systemId);
+		// Games are now read-only from configuration
+		AvailableGames = [];
 		AvailableSystems = await db.GameSystems.ToDropDownListWithId();
 		AvailableSystemFrameRates = await db.GameSystemFrameRates.ToDropDownList(systemId);
-		AvailableGoals = await db.GameGoals.ToDropDownList(gameId);
+		// GameGoals are now read-only from configuration
+		AvailableGoals = [];
 	}
 
 	public class PublicationCatalog

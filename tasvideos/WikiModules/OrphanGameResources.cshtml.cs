@@ -1,9 +1,10 @@
-﻿using TASVideos.WikiEngine;
+using TASVideos.Data.Services;
+using TASVideos.WikiEngine;
 
 namespace TASVideos.WikiModules;
 
 [WikiModule(ModuleNames.OrphanGameResources)]
-public class OrphanGameResources(ApplicationDbContext db) : WikiViewComponent
+public class OrphanGameResources(ApplicationDbContext db, IGamesConfigService gamesConfig) : WikiViewComponent
 {
 	public List<string> Pages { get; set; } = [];
 
@@ -18,11 +19,12 @@ public class OrphanGameResources(ApplicationDbContext db) : WikiViewComponent
 			.ToListAsync();
 
 		// TODO: a join would be more efficient as the list grows
-		var gamePages = await db.Games
+		var allGames = await gamesConfig.GetAllGamesAsync();
+		var gamePages = allGames
 			.Where(g => g.GameResourcesPage != null)
 			.Select(g => g.GameResourcesPage)
 			.Distinct()
-			.ToListAsync();
+			.ToList();
 
 		Pages = Pages
 			.Where(p => !gamePages.Contains(p))

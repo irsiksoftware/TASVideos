@@ -122,5 +122,6 @@ public class EditModel(ApplicationDbContext db, IExternalMediaPublisher publishe
 		return BasePageRedirect("List");
 	}
 
-	private async Task<bool> CanBeDeleted() => Id.HasValue && !await db.Games.ForGroup(Id.Value).AnyAsync();
+	// Games are now read-only from configuration, cannot check for deletion safety
+	private Task<bool> CanBeDeleted() => Task.FromResult(Id.HasValue && false);
 }

@@ -1,9 +1,10 @@
-﻿using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Entity.Game;
+using TASVideos.Data.Services;
 
 namespace TASVideos.Pages.Games.Versions;
 
 [RequirePermission(PermissionTo.CatalogMovies)]
-public class EditModel(ApplicationDbContext db, IExternalMediaPublisher publisher) : BasePageModel
+public class EditModel(ApplicationDbContext db, IExternalMediaPublisher publisher, IGamesConfigService gamesConfig) : BasePageModel
 {
 	private static readonly List<SelectListItem> VersionTypes = Enum
 		.GetValues<VersionTypes>()
@@ -41,14 +42,13 @@ public class EditModel(ApplicationDbContext db, IExternalMediaPublisher publishe
 
 	public async Task<IActionResult> OnGet()
 	{
-		var game = await db.Games.SingleOrDefaultAsync(g => g.Id == GameId);
-
-		if (game is null)
+		var gameDto = await gamesConfig.GetGameByIdAsync(GameId);
+		if (gameDto is null)
 		{
 			return NotFound();
 		}
 
-		GameName = game.DisplayName;
+		GameName = gameDto.DisplayName;
 
 		AvailableSystems = (await db.GameSystems.ToDropDownList()).WithDefaultEntry();
 

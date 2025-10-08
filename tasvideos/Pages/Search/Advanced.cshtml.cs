@@ -1,10 +1,11 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using TASVideos.Data.Entity.Forum;
+using TASVideos.Data.Services;
 
 namespace TASVideos.Pages.Search;
 
 [AllowAnonymous]
-public class AdvancedModel(ApplicationDbContext db) : BasePageModel
+public class AdvancedModel(ApplicationDbContext db, IGamesConfigService gamesConfig) : BasePageModel
 {
 	public const int PageSize = 10;
 	public const int PageSizeSingle = 50;
@@ -132,15 +133,15 @@ public class AdvancedModel(ApplicationDbContext db) : BasePageModel
 
 			if (SearchGames)
 			{
-				GameResults = await db.Games
+				// Games are now read-only from configuration, cannot query with navigation properties
+				var allGames = await gamesConfig.GetAllGamesAsync();
+				GameResults = allGames
 				.Where(g => Regex.IsMatch(g.DisplayName, "(^|[^A-Za-z])" + SearchTerms))
-				.OrderByDescending(g => g.Publications.Count)
-				.ThenByDescending(g => g.Submissions.Count)
-				.ThenBy(g => g.DisplayName)
+				.OrderBy(g => g.DisplayName)
 				.Skip(skip)
 				.Take(DisplayPageSize + 1)
 				.Select(g => new GameResult(g.Id, g.DisplayName))
-				.ToListAsync();
+				.ToList();
 			}
 
 			if (SearchPublications)

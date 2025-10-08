@@ -1,6 +1,7 @@
-﻿using TASVideos.Core.Services.Wiki;
+using TASVideos.Core.Services.Wiki;
 using TASVideos.Core.Settings;
 using TASVideos.Data.Helpers;
+using TASVideos.Data.Services;
 using TASVideos.WikiEngine;
 
 namespace TASVideos.WikiModules;
@@ -8,7 +9,7 @@ namespace TASVideos.WikiModules;
 [WikiModule(ModuleNames.WikiLink)]
 [TextModule]
 [MetaDescriptionModule]
-public class WikiLink(ApplicationDbContext db, AppSettings settings) : WikiViewComponent
+public class WikiLink(ApplicationDbContext db, AppSettings settings, IGamesConfigService gamesConfig) : WikiViewComponent
 {
 	public string Href { get; set; } = "";
 	public string DisplayText { get; set; } = "";
@@ -116,8 +117,7 @@ public class WikiLink(ApplicationDbContext db, AppSettings settings) : WikiViewC
 
 	private async Task<string?> GetGameTitle(int id)
 	{
-		return (await db.Games
-			.Select(g => new { g.Id, g.DisplayName })
-			.SingleOrDefaultAsync(g => g.Id == id))?.DisplayName;
+		var game = await gamesConfig.GetGameByIdAsync(id);
+		return game?.DisplayName;
 	}
 }

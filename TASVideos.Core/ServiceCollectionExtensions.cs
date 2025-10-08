@@ -50,6 +50,7 @@ public static class ServiceCollectionExtensions
 
 	private static IServiceCollection AddServices(this IServiceCollection services, AppSettings settings)
 	{
+		services.AddSingleton<TASVideos.Data.Services.IGamesConfigService, TASVideos.Data.Services.GamesConfigService>();
 		services.AddScoped<UserManager>();
 		services.AddScoped<IUserManager, UserManager>();
 		services.AddScoped<SignInManager>();

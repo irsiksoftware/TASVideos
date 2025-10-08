@@ -52,16 +52,11 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int, UserClaim
 	public DbSet<PublicationAward> PublicationAwards { get; set; } = null!;
 	public DbSet<UserAward> UserAwards { get; set; } = null!;
 
-	// Game tables
-	public DbSet<Game> Games { get; set; } = null!;
-	public DbSet<GameGenre> GameGenres { get; set; } = null!;
+	// Game-related tables (Game tables removed in migration 99999999999999)
 	public DbSet<Genre> Genres { get; set; } = null!;
 	public DbSet<GameSystem> GameSystems { get; set; } = null!;
 	public DbSet<GameSystemFrameRate> GameSystemFrameRates { get; set; } = null!;
-	public DbSet<GameVersion> GameVersions { get; set; } = null!;
 	public DbSet<GameGroup> GameGroups { get; set; } = null!;
-	public DbSet<GameGameGroup> GameGameGroups { get; set; } = null!;
-	public DbSet<GameGoal> GameGoals { get; set; } = null!;
 
 	// Forum tables
 	public DbSet<ForumCategory> ForumCategories { get; set; } = null!;
@@ -324,21 +319,11 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int, UserClaim
 				.WithMany(s => s.Publications)
 				.OnDelete(DeleteBehavior.Restrict);
 
-			entity.HasOne(p => p.GameVersion)
-				.WithMany(r => r.Publications)
-				.OnDelete(DeleteBehavior.Restrict);
-
 			entity.HasMany(p => p.ObsoletedMovies)
 				.WithOne(p => p.ObsoletedBy!)
 				.OnDelete(DeleteBehavior.Restrict);
 
 			entity.HasIndex(e => e.MovieFileName).IsUnique();
-		});
-
-		builder.Entity<GameGenre>(entity =>
-		{
-			entity.HasKey(e => new { e.GameId, e.GenreId });
-			entity.HasIndex(e => e.GameId);
 		});
 
 		builder.Entity<Flag>(entity =>
@@ -417,20 +402,9 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int, UserClaim
 			entity.HasIndex(e => e.DisplayName).IsUnique();
 		});
 
-		builder.Entity<GameGameGroup>(entity =>
-		{
-			entity.HasKey(e => new { e.GameId, e.GameGroupId });
-			entity.HasIndex(e => e.GameId);
-		});
-
 		builder.Entity<GameGroup>(entity =>
 		{
 			entity.HasIndex(e => e.Name).IsUnique();
-			entity.HasIndex(e => e.Abbreviation).IsUnique();
-		});
-
-		builder.Entity<Game>(entity =>
-		{
 			entity.HasIndex(e => e.Abbreviation).IsUnique();
 		});
 

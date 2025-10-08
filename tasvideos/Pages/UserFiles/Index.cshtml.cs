@@ -1,7 +1,9 @@
-﻿namespace TASVideos.Pages.UserFiles;
+using TASVideos.Data.Services;
+
+namespace TASVideos.Pages.UserFiles;
 
 [AllowAnonymous]
-public class IndexModel(ApplicationDbContext db, IExternalMediaPublisher publisher) : BasePageModel
+public class IndexModel(ApplicationDbContext db, IExternalMediaPublisher publisher, IGamesConfigService gamesConfig) : BasePageModel
 {
 	public List<UserWithMovie> UsersWithMovies { get; set; } = [];
 	public List<UserMovie> LatestMovies { get; set; } = [];
@@ -21,14 +23,8 @@ public class IndexModel(ApplicationDbContext db, IExternalMediaPublisher publish
 			.ToUserMovieListModel()
 			.Take(10)
 			.ToListAsync();
-		GamesWithMovies = await db.Games
-			.Where(g => g.UserFiles.Any(uf => !uf.Hidden))
-			.OrderBy(g => g.DisplayName)
-			.Select(g => new GameWithMovie(
-				g.Id,
-				g.DisplayName,
-				g.UserFiles.Select(uf => uf.UploadTimestamp).ToList()))
-			.ToListAsync();
+		// Games are now read-only from configuration, cannot query with navigation properties
+		GamesWithMovies = [];
 		UncatalogedFiles = await db.UserFiles
 			.Where(uf => uf.GameId == null)
 			.ThatArePublic()

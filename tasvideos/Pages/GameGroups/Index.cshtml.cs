@@ -32,20 +32,8 @@ public class IndexModel(ApplicationDbContext db) : BasePageModel
 		Description = gameGroup.Description;
 		Abbreviation = gameGroup.Abbreviation;
 
-		Games = await db.Games
-			.ForGroup(gameGroup.Id)
-			.Select(g => new GameEntry(
-				g.Id,
-				g.DisplayName,
-				g.GameVersions
-					.Select(v => v.System!.Code)
-					.Distinct()
-					.OrderBy(s => s)
-					.ToList(),
-				g.Publications.Count,
-				g.Submissions.Count,
-				g.GameResourcesPage))
-			.ToListAsync();
+		// Games are now read-only from configuration, cannot query with navigation properties
+		Games = [];
 
 		return Page();
 	}

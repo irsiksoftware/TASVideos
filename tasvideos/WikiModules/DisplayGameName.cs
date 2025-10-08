@@ -1,9 +1,10 @@
-﻿using TASVideos.WikiEngine;
+using TASVideos.Data.Services;
+using TASVideos.WikiEngine;
 
 namespace TASVideos.WikiModules;
 
 [WikiModule(ModuleNames.DisplayGameName)]
-public class DisplayGameName(ApplicationDbContext db) : WikiViewComponent
+public class DisplayGameName(ApplicationDbContext db, IGamesConfigService gamesConfig) : WikiViewComponent
 {
 	public async Task<IViewComponentResult> InvokeAsync(IList<int> gid)
 	{
@@ -12,13 +13,13 @@ public class DisplayGameName(ApplicationDbContext db) : WikiViewComponent
 			return Error("No game ID specified");
 		}
 
-		var games = await db.Games
+		var allGames = await gamesConfig.GetAllGamesAsync();
+		var games = allGames
 			.Where(g => gid.Contains(g.Id))
-			.OrderBy(d => d)
-			.ToListAsync();
+			.OrderBy(g => g.DisplayName)
+			.ToList();
 
 		var displayNames = games
-			.OrderBy(g => g.DisplayName)
 			.Select(g => $"{g.DisplayName}");
 
 		return String(string.Join(", ", displayNames));

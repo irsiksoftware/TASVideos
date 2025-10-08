@@ -1,9 +1,10 @@
-﻿using TASVideos.WikiEngine;
+using TASVideos.Data.Services;
+using TASVideos.WikiEngine;
 
 namespace TASVideos.WikiModules;
 
 [WikiModule(ModuleNames.GameName)]
-public class GameName(ApplicationDbContext db) : WikiViewComponent
+public class GameName(ApplicationDbContext db, IGamesConfigService gamesConfig) : WikiViewComponent
 {
 	public List<GameEntry> Games { get; set; } = [];
 
@@ -23,14 +24,15 @@ public class GameName(ApplicationDbContext db) : WikiViewComponent
 		else
 		{
 			var baseGame = string.Join("/", CurrentPage.Split('/').Take(3));
-			Games = await db.Games
+			var allGames = await gamesConfig.GetAllGamesAsync();
+			Games = allGames
 				.Where(g => g.GameResourcesPage == baseGame)
 				.Select(g => new GameEntry
 				{
 					GameId = g.Id,
 					DisplayName = g.DisplayName
 				})
-				.ToListAsync();
+				.ToList();
 		}
 
 		return View();
