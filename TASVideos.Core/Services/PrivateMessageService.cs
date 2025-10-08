@@ -33,9 +33,6 @@ public interface IPrivateMessageService
 internal class PrivateMessageService(ApplicationDbContext db, ICacheService cache, IEmailService emailService) : IPrivateMessageService
 {
 	internal const string UnreadMessageCount = "UnreadMessageCountCache-";
-
-	// TODO: this does not belong in code, move to a system wiki page, or database table
-	private static readonly string[] AllowedBulkRoles = ["site admin", "moderator"];
 	public async Task<Message?> GetMessage(int userId, int id)
 	{
 		var pm = await db.PrivateMessages
@@ -256,7 +253,13 @@ internal class PrivateMessageService(ApplicationDbContext db, ICacheService cach
 		return await db.TrySaveChanges();
 	}
 
-	public async Task<string[]> AllowedRoles() => await Task.FromResult(AllowedBulkRoles);
+	public async Task<string[]> AllowedRoles()
+	{
+		return await db.Roles
+			.Where(r => r.PMToGroup)
+			.Select(r => r.Name)
+			.ToArrayAsync();
+	}
 }
 
 public record InboxEntry(int Id, string? Subject, string From, DateTime Date, bool IsRead);

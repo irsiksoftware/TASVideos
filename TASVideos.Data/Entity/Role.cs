@@ -32,6 +32,11 @@ public class Role : IdentityRole<int>, ITrackable
 	/// </summary>
 	public bool AutoAssignPublications { get; set; }
 
+	/// <summary>
+	/// Gets or sets a value indicating whether users can send private messages to all members of this role.
+	/// </summary>
+	public bool PMToGroup { get; set; }
+
 	public DateTime CreateTimestamp { get; set; }
 
 	public DateTime LastUpdateTimestamp { get; set; }
