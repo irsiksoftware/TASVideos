@@ -1,0 +1,27 @@
+@page
+@model CreateModel
+@{
+	ViewData.SetTitle("Creating New Forum Category");
+}
+
+<partial Name="_ForumHeader" />
+<form method="post">
+	<row>
+		<column lg="12">
+			<fieldset>
+				<label asp-for="Category.Title"></label>
+				<input asp-for="Category.Title" />
+				<span asp-validation-for="Category.Title"></span>
+			</fieldset>
+		</column>
+	</row>
+	<fullrow class="mt-2">
+		<label asp-for="Category.Description"></label>
+		<textarea asp-for="Category.Description" rows="4"></textarea>
+		<span asp-validation-for="Category.Description"></span>
+	</fullrow>
+	<form-button-bar>
+		<submit-button edit="false"></submit-button>
+		<cancel-link asp-page="/Forum/Index"></cancel-link>
+	</form-button-bar>
+</form>

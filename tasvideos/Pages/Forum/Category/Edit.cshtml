@@ -1,0 +1,35 @@
+@page "{id}"
+@model EditModel
+@{
+	ViewData.SetTitle($"Edit Forum Category - {Model.Category.Title}");
+}
+
+<partial Name="_ForumHeader" />
+<top-button-bar>
+	<delete-button
+		condition="Model.CanDelete"
+		asp-href="/Forum/Category/Edit/@Model.Id?handler=Delete"
+		class="float-end"></delete-button>
+</top-button-bar>
+<form client-side-validation="true" method="post">
+	<row>
+		<column lg="12">
+			<fieldset>
+				<label asp-for="Category.Title"></label>
+				<input asp-for="Category.Title" />
+				<span asp-validation-for="Category.Title"></span>
+			</fieldset>
+		</column>
+	</row>
+	<fullrow class="mt-2">
+		<fieldset>
+			<label asp-for="Category.Description"></label>
+			<textarea asp-for="Category.Description" rows="4"></textarea>
+			<span asp-validation-for="Category.Description"></span>
+		</fieldset>
+	</fullrow>
+	<form-button-bar>
+		<submit-button></submit-button>
+		<cancel-link asp-page="/Forum/Index"></cancel-link>
+	</form-button-bar>
+</form>
