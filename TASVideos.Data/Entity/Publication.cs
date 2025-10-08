@@ -64,9 +64,13 @@ public class Publication : BaseEntity, ITimeable
 	public ICollection<PublicationAuthor> Authors { get; init; } = [];
 
 	[ExcludeFromAutoHistory]
+	[Obsolete("Use MovieFileId instead")]
 	public byte[] MovieFile { get; set; } = [];
 
 	public string MovieFileName { get; set; } = "";
+
+	public int? MovieFileId { get; set; }
+	public MovieFile? MovieFileData { get; set; }
 
 	public string? EmulatorVersion { get; set; }
 
