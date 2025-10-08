@@ -17,6 +17,13 @@
 <div class="text-body-tertiary">
 	@await Html.RenderWiki(SystemWiki.MovieLinkInstruction)
 </div>
+@if (Model.History is not null)
+{
+	ViewData["Highlight"] = Model.Id;
+	<hr />
+	<h4>Publication History</h4>
+	<partial name="_PublicationHistory" model="Model.History" />
+}
 <hr />
 <a asp-page="/Wiki/PageHistory"
    asp-route-path="@(LinkConstants.PublicationWikiPage + Model.Id)"

@@ -1,12 +1,14 @@
 ﻿namespace TASVideos.Pages.Publications;
 
 [AllowAnonymous]
-public class ViewModel(ApplicationDbContext db, IFileService fileService, ITASVideosMetrics metrics) : BasePageModel
+public class ViewModel(ApplicationDbContext db, IFileService fileService, ITASVideosMetrics metrics, IPublicationHistory publicationHistory) : BasePageModel
 {
 	[FromRoute]
 	public int Id { get; set; }
 
 	public IndexModel.PublicationDisplay Publication { get; set; } = new();
+
+	public PublicationHistoryGroup? History { get; set; }
 
 	public async Task<IActionResult> OnGet()
 	{
@@ -22,6 +24,7 @@ public class ViewModel(ApplicationDbContext db, IFileService fileService, ITASVi
 		metrics.AddPublicationView(Id);
 
 		Publication = publication;
+		History = await publicationHistory.ForGameByPublication(Id);
 		return Page();
 	}
 
