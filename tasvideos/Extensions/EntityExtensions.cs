@@ -560,6 +560,7 @@ public static class EntityExtensions
 				? s.IntendedClass.Name
 				: "",
 			MovieExtension = s.MovieExtension,
+			MovieFilename = s.Id.ToString() + "M",
 			Title = s.Title,
 			SystemId = s.SystemId ?? 0,
 			SystemFrameRateId = s.SystemFrameRateId,
