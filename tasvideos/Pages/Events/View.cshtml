@@ -1,0 +1,123 @@
+@page "{id}"
+@model ViewModel
+@{
+	ViewData.SetTitle($"{Model.Event.Id}E: {Model.Event.Title}");
+}
+
+<row>
+	<column md="9">
+		<h1>@Model.Event.Id E: @Model.Event.Title</h1>
+		<hr />
+
+		<dl class="row">
+			<dt class="col-sm-3">Event Name</dt>
+			<dd class="col-sm-9">@Model.Event.EventName</dd>
+
+			@if (Model.Event.EventDate.HasValue)
+			{
+				<dt class="col-sm-3">Event Date</dt>
+				<dd class="col-sm-9">@Model.Event.EventDate.Value.ToString("yyyy-MM-dd")</dd>
+			}
+
+			<dt class="col-sm-3">Authors</dt>
+			<dd class="col-sm-9">
+				@foreach (var author in Model.Event.Authors)
+				{
+					<a asp-page="/Users/Profile" asp-route-name="@author">@author</a>
+					@if (author != Model.Event.Authors.Last())
+					{
+						<text>, </text>
+					}
+				}
+				@if (!string.IsNullOrWhiteSpace(Model.Event.AdditionalAuthors))
+				{
+					@if (Model.Event.Authors.Any())
+					{
+						<text>, </text>
+					}
+					@Model.Event.AdditionalAuthors
+				}
+			</dd>
+
+			@if (Model.Event.Frames > 0)
+			{
+				<dt class="col-sm-3">Frames</dt>
+				<dd class="col-sm-9">@Model.Event.Frames.ToString("N0")</dd>
+			}
+
+			@if (Model.Event.RerecordCount > 0)
+			{
+				<dt class="col-sm-3">Rerecord Count</dt>
+				<dd class="col-sm-9">@Model.Event.RerecordCount.ToString("N0")</dd>
+			}
+
+			@if (!string.IsNullOrWhiteSpace(Model.Event.EmulatorVersion))
+			{
+				<dt class="col-sm-3">Emulator</dt>
+				<dd class="col-sm-9">@Model.Event.EmulatorVersion</dd>
+			}
+
+			<dt class="col-sm-3">Submission</dt>
+			<dd class="col-sm-9">
+				<a asp-page="/Submissions/View" asp-route-id="@Model.Event.SubmissionId">@Model.Event.SubmissionId S</a>
+				@if (Model.Event.SubmissionTopicId.HasValue)
+				{
+					<text> | </text>
+					<a asp-page="/Forum/Topics/Index" asp-route-id="@Model.Event.SubmissionTopicId">Forum Topic</a>
+				}
+			</dd>
+
+			<dt class="col-sm-3">Published</dt>
+			<dd class="col-sm-9">@Model.Event.CreateTimestamp.ToString("yyyy-MM-dd")</dd>
+		</dl>
+
+		@if (Model.Event.Urls.Any())
+		{
+			<h3>Videos & Downloads</h3>
+			<ul>
+				@foreach (var url in Model.Event.Urls)
+				{
+					<li>
+						<a href="@url.Url" target="_blank">
+							@(!string.IsNullOrWhiteSpace(url.DisplayName) ? url.DisplayName : url.Type.ToString())
+						</a>
+					</li>
+				}
+			</ul>
+		}
+
+		@if (Model.Event.Tags.Any())
+		{
+			<div class="mt-3">
+				<strong>Tags: </strong>
+				@foreach (var tag in Model.Event.Tags)
+				{
+					<span class="badge bg-secondary">@tag</span>
+				}
+			</div>
+		}
+
+		@if (Model.Event.Flags.Any())
+		{
+			<div class="mt-2">
+				<strong>Flags: </strong>
+				@foreach (var flag in Model.Event.Flags)
+				{
+					<span class="badge bg-info">@flag</span>
+				}
+			</div>
+		}
+	</column>
+
+	<column md="3">
+		@if (User.Has(PermissionTo.EditPublicationMetaData))
+		{
+			<div class="card">
+				<div class="card-header">Actions</div>
+				<div class="card-body">
+					<a asp-page="Edit" asp-route-id="@Model.Event.Id" class="btn btn-primary w-100">Edit</a>
+				</div>
+			</div>
+		}
+	</column>
+</row>

@@ -26,6 +26,13 @@
 				<span asp-validation-for="MovieFile"></span>
 				<div data-id="nozip-reminder" class="alert alert-warning d-none">Note: You no longer need to zip your movie file. You can select your original movie file and your browser will automatically compress it before uploading.</div>
 			</fieldset>
+			<fieldset>
+				<div class="form-check">
+					<input asp-for="IsEventSubmission" class="form-check-input" />
+					<label asp-for="IsEventSubmission" class="form-check-label">This is an event submission (marathon/showcase run)</label>
+				</div>
+				<div class="text-muted small">Check this box only for runs showcased at events (e.g., GDQ, TASBot events). Event submissions may use dummy input files if technical reasons prevent providing accurate files.</div>
+			</fieldset>
 		</column>
 		<column lg="6">
 			<fieldset>

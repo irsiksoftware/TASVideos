@@ -60,6 +60,9 @@ public class SubmitModel(
 	[MustBeTrue(ErrorMessage = "You must agree to the license.")]
 	public bool AgreeToLicense { get; init; }
 
+	[BindProperty]
+	public bool IsEventSubmission { get; init; }
+
 	public string BackupSubmissionDeterminator { get; set; } = "";
 
 	public async Task<IActionResult> OnGet()
@@ -117,7 +120,8 @@ public class SubmitModel(
 			Markup,
 			movieFileBytes,
 			parseResult,
-			await userManager.GetRequiredUser(User));
+			await userManager.GetRequiredUser(User),
+			IsEventSubmission);
 
 		var result = await queueService.Submit(request);
 		if (result.Success)

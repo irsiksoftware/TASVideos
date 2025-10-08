@@ -155,6 +155,9 @@ public class Submission : BaseEntity, ITimeable
 	public DateTime? SyncedOn { get; set; }
 
 	public string? AdditionalSyncNotes { get; set; }
+
+	public bool IsEventSubmission { get; set; }
+	public Event? Event { get; set; }
 }
 
 public static class SubmissionExtensions
