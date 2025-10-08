@@ -11,11 +11,13 @@ public class ViewModelModelTests : TestDbBase
 {
 	private readonly ViewModel _page;
 	private readonly IFileService _fileService;
+	private readonly IPublicationHistory _publicationHistory;
 
 	public ViewModelModelTests()
 	{
 		_fileService = Substitute.For<IFileService>();
-		_page = new ViewModel(_db, _fileService, new NullMetrics());
+		_publicationHistory = Substitute.For<IPublicationHistory>();
+		_page = new ViewModel(_db, _fileService, new NullMetrics(), _publicationHistory);
 	}
 
 	[TestMethod]
