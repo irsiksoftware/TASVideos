@@ -123,7 +123,7 @@ public class EditModel(ApplicationDbContext db, IExternalMediaPublisher publishe
 		{
 			version = db.GameVersions.Add(new GameVersion
 			{
-				Game = await db.Games.SingleAsync(g => g.Id == GameId)
+				GameId = GameId
 			}).Entity;
 		}
 

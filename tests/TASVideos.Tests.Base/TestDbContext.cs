@@ -194,9 +194,8 @@ public class TestDbContext(DbContextOptions<ApplicationDbContext> options, TestD
 		var gameSystemId = (GameSystems.Max(gs => (int?)gs.Id) ?? -1) + 1;
 		var gameSystem = GameSystems.Add(new GameSystem { Id = gameSystemId, Code = gameSystemId.ToString(), DisplayName = gameSystemId.ToString() }).Entity;
 		var systemFrameRate = GameSystemFrameRates.Add(new GameSystemFrameRate { GameSystemId = gameSystem.Id }).Entity;
-		var game = Games.Add(new Game { DisplayName = "TestGame" }).Entity;
-		var gameVersion = GameVersions.Add(new GameVersion { Game = game, Name = "TestGameVersion", System = gameSystem }).Entity;
-		var gameGoal = GameGoals.Add(new GameGoal { DisplayName = "baseline", Game = game }).Entity;
+		// Games and GameGoals tables have been removed
+		var gameVersion = GameVersions.Add(new GameVersion { GameId = 1, Name = "TestGameVersion", System = gameSystem }).Entity;
 		var publicationClassId = (PublicationClasses.Max(pc => (int?)pc.Id) ?? -1) + 1;
 		publicationClass ??= new PublicationClass { Id = publicationClassId, Name = publicationClassId.ToString() };
 		PublicationClasses.Add(publicationClass);
@@ -210,9 +209,9 @@ public class TestDbContext(DbContextOptions<ApplicationDbContext> options, TestD
 			Title = "Test Publication",
 			System = gameSystem,
 			SystemFrameRate = systemFrameRate,
-			Game = game,
+			GameId = 1,
 			GameVersion = gameVersion,
-			GameGoal = gameGoal,
+			GameGoalId = 1,
 			PublicationClass = publicationClass,
 			Submission = submission,
 			MovieFileName = submission.Id.ToString()
@@ -333,7 +332,7 @@ public class TestDbContext(DbContextOptions<ApplicationDbContext> options, TestD
 		});
 
 	public EntityEntry<Game> AddGame(string? displayName = null, string? abbreviation = null)
-		=> Games.Add(new Game { DisplayName = displayName ?? "Test Game", Abbreviation = abbreviation });
+		=> throw new NotSupportedException("Games table has been removed - use GamesConfigService instead");
 
 	public EntityEntry<Genre> AddGenre(string? displayName = null)
 		=> Genres.Add(new Genre { DisplayName = displayName ?? "Action" });
@@ -342,16 +341,16 @@ public class TestDbContext(DbContextOptions<ApplicationDbContext> options, TestD
 		=> GameGroups.Add(new GameGroup { Name = name, Abbreviation = abbreviation });
 
 	public void AttachToGroup(Game game, GameGroup group)
-		=> GameGameGroups.Add(new GameGameGroup { Game = game, GameGroup = group });
+		=> throw new NotSupportedException("GameGameGroups table has been removed");
 
 	public void AttachGenre(Game game, Genre genre)
-		=> GameGenres.Add(new GameGenre { Game = game, Genre = genre });
+		=> throw new NotSupportedException("GameGenres table has been removed");
 
 	public EntityEntry<GameGoal> AddGoalForGame(Game game, string? displayName = null)
-		=> GameGoals.Add(new GameGoal { Game = game, DisplayName = displayName ?? "baseline" });
+		=> throw new NotSupportedException("GameGoals table has been removed");
 
 	public EntityEntry<GameVersion> AddGameVersion(string name, GameSystem system, Game game)
-		=> GameVersions.Add(new GameVersion { Name = name, System = system, Game = game });
+		=> throw new NotSupportedException("GameVersions requires GameId but Game table has been removed");
 	public EntityEntry<GameSystem> AddGameSystem(string code)
 		=> GameSystems.Add(new GameSystem { Code = code });
 

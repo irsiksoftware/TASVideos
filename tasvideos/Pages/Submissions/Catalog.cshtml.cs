@@ -163,14 +163,12 @@ public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publi
 				{
 					externalMessages.Add($"Game changed from \"{submission.Game?.DisplayName}\" to \"{game.DisplayName}\"");
 					submission.GameId = Catalog.Game.Value;
-					submission.Game = game;
 				}
 			}
 			else if (submission.GameId.HasValue)
 			{
 				externalMessages.Add("Game removed");
 				submission.GameId = null;
-				submission.Game = null;
 			}
 		}
 
@@ -188,7 +186,6 @@ public class CatalogModel(ApplicationDbContext db, IExternalMediaPublisher publi
 				{
 					externalMessages.Add($"Game Goal changed from \"{submission.GameGoal?.DisplayName}\" to \"{gameGoal.DisplayName}\"");
 					submission.GameGoalId = Catalog.Goal;
-					submission.GameGoal = gameGoal;
 				}
 			}
 			else

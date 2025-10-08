@@ -52,11 +52,12 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int, UserClaim
 	public DbSet<PublicationAward> PublicationAwards { get; set; } = null!;
 	public DbSet<UserAward> UserAwards { get; set; } = null!;
 
-	// Game-related tables (Game tables removed in migration 99999999999999)
+	// Game tables (Note: Games, GameGenres, GameGameGroups, GameGoals removed in migration 99999999999999)
 	public DbSet<Genre> Genres { get; set; } = null!;
 	public DbSet<GameSystem> GameSystems { get; set; } = null!;
 	public DbSet<GameSystemFrameRate> GameSystemFrameRates { get; set; } = null!;
 	public DbSet<GameGroup> GameGroups { get; set; } = null!;
+	public DbSet<GameVersion> GameVersions { get; set; } = null!;
 
 	// Forum tables
 	public DbSet<ForumCategory> ForumCategories { get; set; } = null!;

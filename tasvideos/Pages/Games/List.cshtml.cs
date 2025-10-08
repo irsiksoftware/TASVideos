@@ -66,7 +66,7 @@ public class ListModel(ApplicationDbContext db, IGamesConfigService gamesConfig)
 	{
 		// Games are now read-only from configuration, cannot filter by system
 		var items = new List<SelectListItem>();
-		return Task.FromResult(ToDropdownResult(items, includeEmpty));
+		return Task.FromResult<IActionResult>(ToDropdownResult(items, includeEmpty));
 	}
 
 	public async Task<IActionResult> OnGetVersionDropDownForGame(int gameId, int systemId, bool includeEmpty)
@@ -79,7 +79,7 @@ public class ListModel(ApplicationDbContext db, IGamesConfigService gamesConfig)
 	{
 		// GameGoals are now read-only from configuration
 		var items = new List<SelectListItem>();
-		return Task.FromResult(ToDropdownResult(items, includeEmpty));
+		return Task.FromResult<IActionResult>(ToDropdownResult(items, includeEmpty));
 	}
 
 	private async Task<PageOf<GameEntry, GameListRequest>> GetPageOfGames(GameListRequest paging)
