@@ -1,4 +1,5 @@
 ﻿using AspNetCore.ReCaptcha;
+using AspNetCoreRateLimit;
 using JavaScriptEngineSwitcher.Core;
 using JavaScriptEngineSwitcher.V8;
 using Serilog;
@@ -56,6 +57,7 @@ var app = builder.Build();
 
 app
 	.UseExceptionHandlers(app.Environment)
+	.UseClientRateLimiting()
 	.UseTasvideosApiEndpoints(builder.Environment)
 	.UseRobots()
 	.UseUserAgentMetrics(settings)
