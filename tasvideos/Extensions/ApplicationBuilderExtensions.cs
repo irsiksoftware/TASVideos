@@ -6,6 +6,53 @@ namespace TASVideos.Extensions;
 
 public static class ApplicationBuilderExtensions
 {
+	/// <summary>
+	/// Determines the appropriate Cross-Origin-Resource-Policy based on request context.
+	/// - Authenticated users get 'same-origin' for maximum protection
+	/// - Static files (images, js, css, fonts) get 'cross-origin' for public sharing
+	/// - Public dynamic content gets 'same-site' for moderate protection
+	/// </summary>
+	private static string GetCrossOriginResourcePolicy(HttpContext context)
+	{
+		// For authenticated users, always use same-origin to prevent cross-origin access
+		if (context.User.IsLoggedIn())
+		{
+			return "same-origin";
+		}
+
+		var path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
+
+		// Static files (images, scripts, styles, fonts, etc.) can be cross-origin
+		// These are public assets that may legitimately be embedded elsewhere
+		if (IsStaticAsset(path))
+		{
+			return "cross-origin";
+		}
+
+		// Public dynamic content gets same-site protection
+		// This allows embedding from same-site contexts but blocks cross-origin
+		return "same-site";
+	}
+
+	/// <summary>
+	/// Checks if the request path is for a static asset.
+	/// </summary>
+	private static bool IsStaticAsset(string path)
+	{
+		// Common static file extensions
+		string[] staticExtensions =
+		[
+			".js", ".css", ".map",           // Scripts and styles
+			".jpg", ".jpeg", ".png", ".gif", ".svg", ".ico", ".webp", ".bmp", // Images
+			".woff", ".woff2", ".ttf", ".eot", ".otf",                        // Fonts
+			".json", ".xml", ".txt",                                          // Data files
+			".mp4", ".webm", ".ogg", ".mp3", ".wav",                         // Media
+			".pdf", ".zip", ".tar", ".gz"                                     // Documents/Archives
+		];
+
+		return staticExtensions.Any(ext => path.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
+	}
+
 	public static IApplicationBuilder UseRobots(this IApplicationBuilder app)
 	{
 		return app.UseWhen(
@@ -90,7 +137,6 @@ public static class ApplicationBuilderExtensions
 		{
 			context.Response.Headers["Cross-Origin-Embedder-Policy"] = "unsafe-none"; // this is as unsecure as before, but can't use `credentialless`, due to breaking YouTube Embeds, see https://github.com/TASVideos/tasvideos/issues/1852
 			context.Response.Headers["Cross-Origin-Opener-Policy"] = "same-origin";
-			context.Response.Headers["Cross-Origin-Resource-Policy"] = "cross-origin"; // TODO this is as unsecure as before; should be `same-site` or `same-origin` when serving auth-gated responses
 			context.Response.Headers["Permissions-Policy"] = permissionsPolicyValue;
 			context.Response.Headers.XXSSProtection = "1; mode=block";
 			context.Response.Headers.XFrameOptions = "DENY";
@@ -99,6 +145,11 @@ public static class ApplicationBuilderExtensions
 			context.Response.Headers.XPoweredBy = "";
 			context.Response.Headers.ContentSecurityPolicy = contentSecurityPolicyValue;
 			await next();
+
+			// Set Cross-Origin-Resource-Policy based on authentication and content type
+			// This prevents cross-origin access to authenticated content while allowing
+			// public static resources to be embedded where needed
+			context.Response.Headers["Cross-Origin-Resource-Policy"] = GetCrossOriginResourcePolicy(context);
 		});
 
 		app.UseCookiePolicy(new CookiePolicyOptions
