@@ -1,0 +1,57 @@
+name: Security Vulnerability
+description: Report a security vulnerability (do not use for public disclosure)
+title: "[Security]: "
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚠️ Security Vulnerability Reporting
+
+        **IMPORTANT: Please do NOT report security vulnerabilities publicly in GitHub issues!**
+
+        For security vulnerabilities, please follow our responsible disclosure process outlined in our [SECURITY.md](../SECURITY.md) file.
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Why not use GitHub Issues?
+
+        Public disclosure of security vulnerabilities can put users at risk before a patch is available. By following our security policy, you help us:
+
+        - Investigate the vulnerability privately
+        - Develop and test a fix
+        - Coordinate disclosure timing
+        - Protect our users
+
+  - type: markdown
+    attributes:
+      value: |
+        ### How to Report
+
+        Please refer to our [SECURITY.md](../SECURITY.md) file for:
+
+        - Secure contact methods
+        - Expected response times
+        - Our security disclosure process
+        - Supported versions
+
+  - type: checkboxes
+    id: acknowledgment
+    attributes:
+      label: Acknowledgment
+      description: Please confirm you understand the security reporting process
+      options:
+        - label: I understand that security vulnerabilities should be reported privately according to SECURITY.md
+          required: true
+        - label: I acknowledge that this issue template is for informational purposes only
+          required: true
+
+  - type: textarea
+    id: redirect
+    attributes:
+      label: Next Steps
+      description: If you've already reported this vulnerability through proper channels, you can note that here.
+      placeholder: "Optional: Confirmation that you've followed the security policy..."
+    validations:
+      required: false

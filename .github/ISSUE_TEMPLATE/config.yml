@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discord Community
+    url: https://tasvideos.org/LiveChat
+    about: Join our Discord server for real-time help, questions, and community discussions
+  - name: Development Setup Guide
+    url: https://github.com/TASVideos/tasvideos/wiki/Local-Development-Setup
+    about: Complete guide for setting up local development environment
+  - name: Site Coding Standards
+    url: https://tasvideos.org/SiteCodingStandards
+    about: Official coding standards and best practices for TASVideos contributions
+  - name: TASVideos Website
+    url: https://tasvideos.org
+    about: Visit the main TASVideos website

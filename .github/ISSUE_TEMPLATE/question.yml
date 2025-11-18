@@ -1,0 +1,91 @@
+name: Question or Support
+description: Ask a question or request help
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reaching out! Before submitting a question, please check:
+
+        - **[Documentation/Wiki]** - Common questions may already be answered
+        - **[Discord]** - For real-time help and community support
+        - **Existing Issues** - Your question might already be answered
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Question Category
+      description: What is your question about?
+      options:
+        - General Usage
+        - Movie Submission
+        - Publication Process
+        - Account/Profile
+        - Forum
+        - Technical Setup
+        - Development/Contributing
+        - API Usage
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: Please describe your question or issue in detail.
+      placeholder: What would you like to know?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: What Have You Tried?
+      description: What steps have you already taken to solve this?
+      placeholder: |
+        - Checked the documentation
+        - Searched existing issues
+        - Tried...
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected-outcome
+    attributes:
+      label: Expected Outcome
+      description: What are you trying to accomplish?
+      placeholder: I'm trying to...
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: If relevant, provide details about your environment.
+      placeholder: |
+        - Browser: Chrome 120
+        - OS: Windows 11
+        - Account type: Regular user
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your question.
+      placeholder: Drag and drop images here or paste them...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Any other information that might be helpful.
+      placeholder: Any other context...
+    validations:
+      required: false
