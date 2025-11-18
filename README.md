@@ -1,4 +1,5 @@
 ![.NET Core](https://github.com/TASVideos/tasvideos/workflows/.NET%20Core/badge.svg)
+[![CodeQL](https://github.com/TASVideos/tasvideos/workflows/CodeQL%20Security%20Scan/badge.svg)](https://github.com/TASVideos/tasvideos/security/code-scanning)
 
 [![GitHub open issues counter](https://img.shields.io/github/issues-raw/TASVideos/tasvideos.svg?logo=github&logoColor=333333&style=popout)](https://github.com/TASVideos/tasvideos/issues)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/7161/badge)](https://www.bestpractices.dev/projects/7161)

@@ -1,0 +1,66 @@
+name: "CodeQL Security Scan"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2:00 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'csharp' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up .NET Core 8.0.x
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # Use the security-and-quality query suite for comprehensive analysis
+        queries: security-and-quality
+        # Exclude test files from certain checks to reduce noise
+        config: |
+          paths-ignore:
+            - '**/Tests/**'
+            - '**/test/**'
+            - '**/*.Test/**'
+            - '**/*.Tests/**'
+
+    # Restore dependencies before building
+    - name: Restore dependencies
+      run: dotnet restore
+
+    # Build the project
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    # Perform CodeQL Analysis
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
+        # Upload SARIF file to GitHub Security tab
+        upload: true
+        # Don't fail the workflow on findings - report only
+        fail-on: never
