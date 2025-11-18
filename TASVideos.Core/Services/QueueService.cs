@@ -4,6 +4,7 @@ using TASVideos.Core.Services.Wiki;
 using TASVideos.Core.Services.Youtube;
 using TASVideos.Core.Settings;
 using TASVideos.Data.Helpers;
+using TASVideos.Extensions;
 using TASVideos.MovieParsers;
 using TASVideos.MovieParsers.Result;
 using static TASVideos.Data.Entity.SubmissionStatus;
@@ -505,33 +506,10 @@ internal class QueueService(
 
 	public async Task<(IParseResult ParseResult, byte[] MovieFileBytes)> ParseMovieFileOrZip(IFormFile movieFile)
 	{
-		// Inline implementation of DecompressOrTakeRaw
-		var rawFileStream = new MemoryStream();
-		await movieFile.CopyToAsync(rawFileStream);
-
-		MemoryStream fileStream;
-		try
-		{
-			rawFileStream.Position = 0;
-			using var gzip = new GZipStream(rawFileStream, CompressionMode.Decompress, leaveOpen: true);
-			var decompressedFileStream = new MemoryStream();
-			await gzip.CopyToAsync(decompressedFileStream);
-			await rawFileStream.DisposeAsync();
-			decompressedFileStream.Position = 0;
-			fileStream = decompressedFileStream;
-		}
-		catch (InvalidDataException)
-		{
-			rawFileStream.Position = 0;
-			fileStream = rawFileStream;
-		}
-
+		using var fileStream = await movieFile.DecompressOrTakeRaw();
 		byte[] fileBytes = fileStream.ToArray();
 
-		// Inline implementation of IsZip
-		bool isZip = movieFile.FileName.EndsWith(".zip")
-			&& movieFile.ContentType is "application/x-zip-compressed" or "application/zip";
-
+		bool isZip = movieFile.IsZip();
 		var parseResult = isZip
 			? await movieParser.ParseZip(fileStream)
 			: await movieParser.ParseFile(movieFile.FileName, fileStream);
@@ -545,25 +523,7 @@ internal class QueueService(
 
 	public async Task<(IParseResult ParseResult, byte[] MovieFileBytes)> ParseMovieFile(IFormFile movieFile)
 	{
-		var rawFileStream = new MemoryStream();
-		await movieFile.CopyToAsync(rawFileStream);
-
-		MemoryStream fileStream;
-		try
-		{
-			rawFileStream.Position = 0;
-			using var gzip = new GZipStream(rawFileStream, CompressionMode.Decompress, leaveOpen: true);
-			var decompressedFileStream = new MemoryStream();
-			await gzip.CopyToAsync(decompressedFileStream);
-			await rawFileStream.DisposeAsync();
-			decompressedFileStream.Position = 0;
-			fileStream = decompressedFileStream;
-		}
-		catch (InvalidDataException)
-		{
-			rawFileStream.Position = 0;
-			fileStream = rawFileStream;
-		}
+		using var fileStream = await movieFile.DecompressOrTakeRaw();
 
 		// Parse the individual movie file (not a zip)
 		var parseResult = await movieParser.ParseFile(movieFile.FileName, fileStream);
