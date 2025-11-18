@@ -1,0 +1,53 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-net/master/src/Stryker.CLI/Stryker.CLI/schema.json",
+  "stryker-config": {
+    "project": "TASVideos.sln",
+    "test-projects": [
+      "tests/TASVideos.Core.Tests/TASVideos.Core.Tests.csproj",
+      "tests/TASVideos.Data.Tests/TASVideos.Data.Tests.csproj",
+      "tests/TASVideos.Common.Tests/TASVideos.Common.Tests.csproj",
+      "tests/TASVideos.WikiEngine.Tests/TASVideos.WikiEngine.Tests.csproj",
+      "tests/TASVideos.ForumEngineTests/TASVideos.ForumEngineTests.csproj",
+      "tests/TASVideos.MovieParsers.Tests/TASVideos.MovieParsers.Tests.csproj"
+    ],
+    "thresholds": {
+      "high": 80,
+      "low": 60,
+      "break": 50
+    },
+    "mutation-level": "standard",
+    "concurrency": 4,
+    "reporters": [
+      "html",
+      "progress",
+      "dashboard"
+    ],
+    "dashboard": {
+      "project": "github.com/TASVideos/tasvideos",
+      "version": "main"
+    },
+    "ignore-methods": [
+      "*ToString*",
+      "*GetHashCode*",
+      "*Equals*"
+    ],
+    "mutate": [
+      "TASVideos.Core/**/*.cs",
+      "TASVideos.Data/**/*.cs",
+      "TASVideos.Common/**/*.cs",
+      "TASVideos.WikiEngine/**/*.cs",
+      "TASVideos.ForumEngine/**/*.cs",
+      "TASVideos.MovieParsers/**/*.cs",
+      "!**/Migrations/**/*.cs",
+      "!**/obj/**/*.cs",
+      "!**/bin/**/*.cs"
+    ],
+    "diff": false,
+    "baseline": {
+      "provider": "disk"
+    },
+    "since": {
+      "enabled": false
+    }
+  }
+}

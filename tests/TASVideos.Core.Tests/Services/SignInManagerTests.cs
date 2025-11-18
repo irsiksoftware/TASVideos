@@ -53,4 +53,131 @@ public sealed class SignInManagerTests : TestDbBase
 		var actual = _signInManager.IsPasswordAllowed(userName, email, password);
 		Assert.AreEqual(expected, actual);
 	}
+
+	[TestMethod]
+	public void IsPasswordAllowed_WhenPasswordMatchesUsername_ReturnsFalse()
+	{
+		var result = _signInManager.IsPasswordAllowed("myusername", "email@test.com", "myusername");
+		Assert.IsFalse(result);
+	}
+
+	[TestMethod]
+	public void IsPasswordAllowed_WhenPasswordMatchesEmail_ReturnsFalse()
+	{
+		var result = _signInManager.IsPasswordAllowed("user", "myemail@test.com", "myemail@test.com");
+		Assert.IsFalse(result);
+	}
+
+	[TestMethod]
+	public void IsPasswordAllowed_WhenPasswordMatchesEmailPrefix_ReturnsFalse()
+	{
+		var result = _signInManager.IsPasswordAllowed("user", "myemail@test.com", "myemail");
+		Assert.IsFalse(result);
+	}
+
+	[TestMethod]
+	public void IsPasswordAllowed_WhenPasswordDifferentFromAll_ReturnsTrue()
+	{
+		var result = _signInManager.IsPasswordAllowed("user", "email@test.com", "ComplexP@ssw0rd!");
+		Assert.IsTrue(result);
+	}
+
+	[TestMethod]
+	public void IsPasswordAllowed_WhenUsernameIsNull_DoesNotThrow()
+	{
+		var result = _signInManager.IsPasswordAllowed(null, "email@test.com", "password");
+		Assert.IsTrue(result);
+	}
+
+	[TestMethod]
+	public void IsPasswordAllowed_WhenEmailIsNull_DoesNotThrow()
+	{
+		var result = _signInManager.IsPasswordAllowed("user", null, "password");
+		Assert.IsTrue(result);
+	}
+
+	[TestMethod]
+	public void IsPasswordAllowed_WhenPasswordIsNull_DoesNotThrow()
+	{
+		var result = _signInManager.IsPasswordAllowed("user", "email@test.com", null);
+		Assert.IsTrue(result);
+	}
+
+	[TestMethod]
+	public async Task EmailExists_WhenEmailIsEmpty_ReturnsFalse()
+	{
+		var result = await _signInManager.EmailExists("");
+		Assert.IsFalse(result);
+	}
+
+	[TestMethod]
+	public async Task EmailExists_WhenEmailIsNull_ReturnsFalse()
+	{
+		var result = await _signInManager.EmailExists(null!);
+		Assert.IsFalse(result);
+	}
+
+	[TestMethod]
+	public async Task EmailExists_WithPlusAlias_StripsAliasBeforeChecking()
+	{
+		_db.Users.Add(new User
+		{
+			UserName = "testuser",
+			Email = "test@example.com"
+		});
+		await _db.SaveChangesAsync();
+
+		var result = await _signInManager.EmailExists("test+alias@example.com");
+		Assert.IsTrue(result);
+	}
+
+	[TestMethod]
+	public async Task EmailExists_WhenNotFound_ReturnsFalse()
+	{
+		var result = await _signInManager.EmailExists("nonexistent@example.com");
+		Assert.IsFalse(result);
+	}
+
+	[TestMethod]
+	public async Task UsernameIsAllowed_WhenNoDisallows_ReturnsTrue()
+	{
+		var result = await _signInManager.UsernameIsAllowed("validusername");
+		Assert.IsTrue(result);
+	}
+
+	[TestMethod]
+	public async Task UsernameIsAllowed_WhenMatchesDisallowPattern_ReturnsFalse()
+	{
+		_db.UserDisallows.Add(new UserDisallow { RegexPattern = "^admin.*" });
+		await _db.SaveChangesAsync();
+
+		var result = await _signInManager.UsernameIsAllowed("admin123");
+		Assert.IsFalse(result);
+	}
+
+	[TestMethod]
+	public async Task UsernameIsAllowed_WhenDoesNotMatchDisallowPattern_ReturnsTrue()
+	{
+		_db.UserDisallows.Add(new UserDisallow { RegexPattern = "^admin.*" });
+		await _db.SaveChangesAsync();
+
+		var result = await _signInManager.UsernameIsAllowed("user123");
+		Assert.IsTrue(result);
+	}
+
+	[TestMethod]
+	public async Task UsernameIsAllowed_WithMultiplePatterns_ChecksAll()
+	{
+		_db.UserDisallows.Add(new UserDisallow { RegexPattern = "^admin.*" });
+		_db.UserDisallows.Add(new UserDisallow { RegexPattern = ".*moderator.*" });
+		await _db.SaveChangesAsync();
+
+		var result1 = await _signInManager.UsernameIsAllowed("admin123");
+		var result2 = await _signInManager.UsernameIsAllowed("user_moderator_test");
+		var result3 = await _signInManager.UsernameIsAllowed("normaluser");
+
+		Assert.IsFalse(result1);
+		Assert.IsFalse(result2);
+		Assert.IsTrue(result3);
+	}
 }
