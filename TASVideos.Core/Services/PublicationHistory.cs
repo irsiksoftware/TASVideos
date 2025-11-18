@@ -43,11 +43,16 @@ internal class PublicationHistory(ApplicationDbContext db) : IPublicationHistory
 			})
 			.ToListAsync();
 
-		// TODO: this is an n squared problem. Any way to avoid it?
-		// Realistically, no publication history is going to be large enough to cause a major problem
+		// Create a lookup dictionary for O(1) access: maps publication ID to list of publications it obsoletes
+		// This optimizes from O(n²) to O(n) by avoiding nested iteration
+		var obsoletesByParent = publications
+			.Where(p => p.ObsoletedById.HasValue)
+			.ToLookup(p => p.ObsoletedById!.Value);
+
+		// Assign obsolete lists in O(n) time instead of O(n²)
 		foreach (var pub in publications)
 		{
-			pub.ObsoleteList = publications.Where(p => p.ObsoletedById == pub.Id).ToList();
+			pub.ObsoleteList = obsoletesByParent[pub.Id].ToList();
 		}
 
 		return new PublicationHistoryGroup
