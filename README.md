@@ -10,6 +10,8 @@ Aims to bring the site up to modern standards with updated technologies and a mo
 
 Contributions are encouraged but should follow site coding standards: https://tasvideos.org/SiteCodingStandards
 
+For a detailed list of changes between versions, see the [CHANGELOG](CHANGELOG.md).
+
 # Try it out!
 Wiki page for setting up local development: https://github.com/TASVideos/tasvideos/wiki/Local-Development-Setup
 

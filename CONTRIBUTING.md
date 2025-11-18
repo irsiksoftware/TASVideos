@@ -30,6 +30,19 @@ We're down to 0 warnings, and let's keep it that way!
 If possible, please include unit tests when adding new features.
 We don't have Selenium or anything set up so you can't really test the frontend automatically, but any increase in test coverage is welcomed.
 
+## Maintaining the Changelog
+
+This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. When submitting a pull request, please update the `[Unreleased]` section of [CHANGELOG.md](CHANGELOG.md) with your changes under the appropriate category:
+
+- **Added** - for new features
+- **Changed** - for changes in existing functionality
+- **Deprecated** - for soon-to-be removed features
+- **Removed** - for now removed features
+- **Fixed** - for any bug fixes
+- **Security** - in case of vulnerabilities
+
+Include a reference to your pull request or issue number when applicable (e.g., `[#123]`).
+
 ## Site Design
 
 The site has a [design document](DESIGN-SPEC.md) which details the structure, philosophy, and design goals of the frontend segments of the codebase which is great study for aspiring frontend contributors.
