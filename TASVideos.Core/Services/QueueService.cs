@@ -1,5 +1,6 @@
 ﻿using System.IO.Compression;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using TASVideos.Core.Services.Wiki;
 using TASVideos.Core.Services.Youtube;
 using TASVideos.Core.Settings;
@@ -101,6 +102,7 @@ public interface IQueueService
 internal class QueueService(
 	AppSettings settings,
 	ApplicationDbContext db,
+	ILogger<QueueService> logger,
 	IYoutubeSync youtubeSync,
 	ITASVideoAgent tva,
 	IWikiPages wikiPages,
@@ -253,6 +255,8 @@ internal class QueueService(
 
 	public async Task<DeleteSubmissionResult> DeleteSubmission(int submissionId)
 	{
+		logger.LogInformation("Attempting to delete submission {SubmissionId}", submissionId);
+
 		var submission = await db.Submissions
 			.Include(s => s.SubmissionAuthors)
 			.Include(s => s.History)
@@ -260,41 +264,63 @@ internal class QueueService(
 
 		if (submission is null)
 		{
+			logger.LogWarning("Submission {SubmissionId} not found for deletion", submissionId);
 			return DeleteSubmissionResult.NotFound();
 		}
 
 		if (submission.PublisherId.HasValue)
 		{
+			logger.LogWarning(
+				"Cannot delete submission {SubmissionId} ({SubmissionTitle}) - already published",
+				submissionId, submission.Title);
 			return DeleteSubmissionResult.IsPublished(submission.Title);
 		}
 
-		submission.SubmissionAuthors.Clear();
-		submission.History.Clear();
-		db.Submissions.Remove(submission);
-		if (submission.TopicId.HasValue)
+		try
 		{
-			var topic = await db.ForumTopics
-				.Include(t => t.ForumPosts)
-				.Include(t => t.Poll)
-				.ThenInclude(p => p!.PollOptions)
-				.ThenInclude(o => o.Votes)
-				.SingleAsync(t => t.Id == submission.TopicId);
-
-			db.ForumPosts.RemoveRange(topic.ForumPosts);
-			if (topic.Poll is not null)
+			submission.SubmissionAuthors.Clear();
+			submission.History.Clear();
+			db.Submissions.Remove(submission);
+			if (submission.TopicId.HasValue)
 			{
-				db.ForumPollOptionVotes.RemoveRange(topic.Poll.PollOptions.SelectMany(po => po.Votes));
-				db.ForumPollOptions.RemoveRange(topic.Poll.PollOptions);
-				db.ForumPolls.Remove(topic.Poll);
+				logger.LogInformation(
+					"Deleting forum topic {TopicId} for submission {SubmissionId}",
+					submission.TopicId.Value, submissionId);
+
+				var topic = await db.ForumTopics
+					.Include(t => t.ForumPosts)
+					.Include(t => t.Poll)
+					.ThenInclude(p => p!.PollOptions)
+					.ThenInclude(o => o.Votes)
+					.SingleAsync(t => t.Id == submission.TopicId);
+
+				db.ForumPosts.RemoveRange(topic.ForumPosts);
+				if (topic.Poll is not null)
+				{
+					db.ForumPollOptionVotes.RemoveRange(topic.Poll.PollOptions.SelectMany(po => po.Votes));
+					db.ForumPollOptions.RemoveRange(topic.Poll.PollOptions);
+					db.ForumPolls.Remove(topic.Poll);
+				}
+
+				db.ForumTopics.Remove(topic);
 			}
 
-			db.ForumTopics.Remove(topic);
+			await db.SaveChangesAsync();
+			await wikiPages.Delete(WikiHelper.ToSubmissionWikiPageName(submissionId));
+
+			logger.LogInformation(
+				"Successfully deleted submission {SubmissionId} ({SubmissionTitle})",
+				submissionId, submission.Title);
+
+			return DeleteSubmissionResult.Success(submission.Title);
 		}
-
-		await db.SaveChangesAsync();
-		await wikiPages.Delete(WikiHelper.ToSubmissionWikiPageName(submissionId));
-
-		return DeleteSubmissionResult.Success(submission.Title);
+		catch (Exception ex)
+		{
+			logger.LogError(ex,
+				"Failed to delete submission {SubmissionId} ({SubmissionTitle})",
+				submissionId, submission.Title);
+			throw;
+		}
 	}
 
 	public async Task<DateTime?> ExceededSubmissionLimit(int userId)
@@ -318,6 +344,10 @@ internal class QueueService(
 
 	public async Task<UpdateSubmissionResult> UpdateSubmission(UpdateSubmissionRequest request)
 	{
+		logger.LogInformation(
+			"Updating submission {SubmissionId} by user {UserName}",
+			request.SubmissionId, request.UserName);
+
 		var submission = await db.Submissions
 			.Include(s => s.SubmissionAuthors)
 			.ThenInclude(sa => sa.Author)
@@ -334,28 +364,46 @@ internal class QueueService(
 
 		if (submission is null)
 		{
+			logger.LogWarning("Submission {SubmissionId} not found for update", request.SubmissionId);
 			return UpdateSubmissionResult.Error("Submission not found");
 		}
 
 		if (request.ReplaceMovieFile is not null)
 		{
+			logger.LogInformation(
+				"Replacing movie file for submission {SubmissionId}, filename: {FileName}",
+				request.SubmissionId, request.ReplaceMovieFile.FileName);
+
 			var (parseResult, movieFileBytes) = await ParseMovieFileOrZip(request.ReplaceMovieFile);
 			if (!parseResult.Success)
 			{
+				logger.LogWarning(
+					"Movie file parsing failed for submission {SubmissionId}: {Errors}",
+					request.SubmissionId, string.Join(", ", parseResult.Errors));
 				return UpdateSubmissionResult.Error("Movie file parsing failed");
 			}
 
 			var deprecated = await deprecator.IsDeprecated("." + parseResult.FileExtension);
 			if (deprecated)
 			{
+				logger.LogWarning(
+					"Rejected deprecated movie format .{Extension} for submission {SubmissionId}",
+					parseResult.FileExtension, request.SubmissionId);
 				return UpdateSubmissionResult.Error($".{parseResult.FileExtension} is no longer submittable");
 			}
 
 			var mapResult = await MapParsedResult(parseResult);
 			if (mapResult is null)
 			{
+				logger.LogWarning(
+					"Unknown system type {SystemCode} for submission {SubmissionId}",
+					parseResult.SystemCode, request.SubmissionId);
 				return UpdateSubmissionResult.Error($"Unknown system type of {parseResult.SystemCode}");
 			}
+
+			logger.LogInformation(
+				"Successfully replaced movie file for submission {SubmissionId}: {SystemCode}, {Frames} frames",
+				request.SubmissionId, parseResult.SystemCode, parseResult.Frames);
 
 			submission.MovieStartType = mapResult.MovieStartType;
 			submission.Frames = mapResult.Frames;
@@ -386,19 +434,33 @@ internal class QueueService(
 		if (SubmissionHelper.JudgeIsClaiming(submission.Status, request.Status))
 		{
 			submission.Judge = await db.Users.SingleAsync(u => u.UserName == request.UserName);
+			logger.LogInformation(
+				"User {UserName} claimed submission {SubmissionId} for judging",
+				request.UserName, request.SubmissionId);
 		}
 		else if (SubmissionHelper.JudgeIsUnclaiming(request.Status))
 		{
+			var previousJudge = submission.Judge?.UserName;
 			submission.Judge = null;
+			logger.LogInformation(
+				"Judge {JudgeName} unclaimed submission {SubmissionId}",
+				previousJudge, request.SubmissionId);
 		}
 
 		if (SubmissionHelper.PublisherIsClaiming(submission.Status, request.Status))
 		{
 			submission.Publisher = await db.Users.SingleAsync(u => u.UserName == request.UserName);
+			logger.LogInformation(
+				"User {UserName} claimed submission {SubmissionId} for publishing",
+				request.UserName, request.SubmissionId);
 		}
 		else if (SubmissionHelper.PublisherIsUnclaiming(submission.Status, request.Status))
 		{
+			var previousPublisher = submission.Publisher?.UserName;
 			submission.Publisher = null;
+			logger.LogInformation(
+				"Publisher {PublisherName} unclaimed submission {SubmissionId}",
+				previousPublisher, request.SubmissionId);
 		}
 
 		bool statusHasChanged = submission.Status != request.Status;
@@ -408,6 +470,10 @@ internal class QueueService(
 
 		if (statusHasChanged)
 		{
+			logger.LogInformation(
+				"Submission {SubmissionId} status changing from {PreviousStatus} to {NewStatus} by {UserName}",
+				request.SubmissionId, previousStatus, request.Status, request.UserName);
+
 			db.SubmissionStatusHistory.Add(submission.Id, request.Status);
 
 			if (submission.Topic is not null)
@@ -429,6 +495,10 @@ internal class QueueService(
 			// reject/cancel topic move is handled later with TVG's post
 			if (requiresTopicMove && moveTopicToForumId.HasValue && submission.Topic is not null)
 			{
+				logger.LogInformation(
+					"Moving forum topic {TopicId} for submission {SubmissionId} to forum {ForumId}",
+					submission.Topic.Id, request.SubmissionId, moveTopicToForumId.Value);
+
 				submission.Topic.ForumId = moveTopicToForumId.Value;
 				var postsToMove = await db.ForumPosts
 					.ForTopic(submission.Topic.Id)
@@ -494,8 +564,15 @@ internal class QueueService(
 
 		if (statusHasChanged && request.Status.IsGrueFood())
 		{
+			logger.LogInformation(
+				"Submission {SubmissionId} marked as {Status}, invoking TASVideos Grue",
+				request.SubmissionId, request.Status);
 			await tasvideosGrue.RejectAndMove(request.SubmissionId);
 		}
+
+		logger.LogInformation(
+			"Successfully updated submission {SubmissionId} ({SubmissionTitle})",
+			request.SubmissionId, submission.Title);
 
 		return new UpdateSubmissionResult(
 			null,
@@ -505,6 +582,10 @@ internal class QueueService(
 
 	public async Task<(IParseResult ParseResult, byte[] MovieFileBytes)> ParseMovieFileOrZip(IFormFile movieFile)
 	{
+		logger.LogDebug(
+			"Parsing movie file: {FileName}, ContentType: {ContentType}, Size: {Size} bytes",
+			movieFile.FileName, movieFile.ContentType, movieFile.Length);
+
 		// Inline implementation of DecompressOrTakeRaw
 		var rawFileStream = new MemoryStream();
 		await movieFile.CopyToAsync(rawFileStream);
@@ -519,11 +600,13 @@ internal class QueueService(
 			await rawFileStream.DisposeAsync();
 			decompressedFileStream.Position = 0;
 			fileStream = decompressedFileStream;
+			logger.LogDebug("Successfully decompressed gzip file {FileName}", movieFile.FileName);
 		}
 		catch (InvalidDataException)
 		{
 			rawFileStream.Position = 0;
 			fileStream = rawFileStream;
+			logger.LogDebug("File {FileName} is not gzip compressed, using raw file", movieFile.FileName);
 		}
 
 		byte[] fileBytes = fileStream.ToArray();
@@ -532,9 +615,24 @@ internal class QueueService(
 		bool isZip = movieFile.FileName.EndsWith(".zip")
 			&& movieFile.ContentType is "application/x-zip-compressed" or "application/zip";
 
+		logger.LogDebug("Parsing {FileType}: {FileName}", isZip ? "zip file" : "movie file", movieFile.FileName);
+
 		var parseResult = isZip
 			? await movieParser.ParseZip(fileStream)
 			: await movieParser.ParseFile(movieFile.FileName, fileStream);
+
+		if (!parseResult.Success)
+		{
+			logger.LogWarning(
+				"Movie file parsing failed for {FileName}: {Errors}",
+				movieFile.FileName, string.Join(", ", parseResult.Errors));
+		}
+		else
+		{
+			logger.LogInformation(
+				"Successfully parsed movie file {FileName}: {SystemCode}, {Frames} frames, {RerecordCount} rerecords",
+				movieFile.FileName, parseResult.SystemCode, parseResult.Frames, parseResult.RerecordCount);
+		}
 
 		byte[] movieFileBytes = isZip
 			? fileBytes
@@ -545,6 +643,10 @@ internal class QueueService(
 
 	public async Task<(IParseResult ParseResult, byte[] MovieFileBytes)> ParseMovieFile(IFormFile movieFile)
 	{
+		logger.LogDebug(
+			"Parsing individual movie file (non-zip): {FileName}, Size: {Size} bytes",
+			movieFile.FileName, movieFile.Length);
+
 		var rawFileStream = new MemoryStream();
 		await movieFile.CopyToAsync(rawFileStream);
 
@@ -567,6 +669,13 @@ internal class QueueService(
 
 		// Parse the individual movie file (not a zip)
 		var parseResult = await movieParser.ParseFile(movieFile.FileName, fileStream);
+
+		if (!parseResult.Success)
+		{
+			logger.LogWarning(
+				"Individual movie file parsing failed for {FileName}: {Errors}",
+				movieFile.FileName, string.Join(", ", parseResult.Errors));
+		}
 
 		// Get the file bytes for storage
 		byte[] movieFileBytes = fileStream.ToArray();
@@ -600,6 +709,11 @@ internal class QueueService(
 
 	public async Task<SubmitResult> Submit(SubmitRequest request)
 	{
+		var startTime = DateTime.UtcNow;
+		logger.LogInformation(
+			"Starting submission creation for user {UserId} ({UserName}), game: {GameName}, system: {SystemCode}",
+			request.Submitter.Id, request.Submitter.UserName, request.GameName, request.ParseResult.SystemCode);
+
 		try
 		{
 			using var dbTransaction = await db.BeginTransactionAsync();
@@ -607,8 +721,15 @@ internal class QueueService(
 			var mapResult = await MapParsedResult(request.ParseResult);
 			if (mapResult is null)
 			{
+				logger.LogWarning(
+					"Unknown system type {SystemCode} for submission by user {UserId}",
+					request.ParseResult.SystemCode, request.Submitter.Id);
 				return new FailedSubmitResult($"Unknown system type of {request.ParseResult.SystemCode}");
 			}
+
+			logger.LogDebug(
+				"Creating submission entity for {GameName} with {Frames} frames, {RerecordCount} rerecords",
+				request.GameName, mapResult.Frames, mapResult.RerecordCount);
 
 			var submission = db.Submissions.Add(new Submission
 			{
@@ -641,8 +762,12 @@ internal class QueueService(
 
 			// Save submission to get ID
 			await db.SaveChangesAsync();
+			logger.LogInformation(
+				"Created submission {SubmissionId} in database for user {UserId}",
+				submission.Id, request.Submitter.Id);
 
 			// Create wiki page
+			logger.LogDebug("Creating wiki page for submission {SubmissionId}", submission.Id);
 			await wikiPages.Add(new WikiCreateRequest
 			{
 				PageName = LinkConstants.SubmissionWikiPage + submission.Id,
@@ -655,45 +780,81 @@ internal class QueueService(
 			db.SubmissionAuthors.AddRange(await db.Users
 				.ToSubmissionAuthors(submission.Id, request.Authors)
 				.ToListAsync());
+			logger.LogDebug(
+				"Added {AuthorCount} authors to submission {SubmissionId}",
+				request.Authors.Count, submission.Id);
 
 			// Generate title and create the forum topic
 			submission.GenerateTitle();
+			logger.LogDebug("Creating forum topic for submission {SubmissionId}: {Title}", submission.Id, submission.Title);
 			submission.TopicId = await tva.PostSubmissionTopic(submission.Id, submission.Title);
 			await db.SaveChangesAsync();
 
 			// Commit transaction
 			await dbTransaction.CommitAsync();
+			logger.LogInformation(
+				"Successfully committed submission {SubmissionId} transaction, forum topic: {TopicId}",
+				submission.Id, submission.TopicId);
 
 			// Handle screenshot download and publisher notification (after transaction commit)
 			byte[]? screenshotFile = null;
 			if (youtubeSync.IsYoutubeUrl(submission.EncodeEmbedLink))
 			{
+				var youtubeEmbedImageLink = "https://i.ytimg.com/vi/" + submission.EncodeEmbedLink!.Split('/').Last() + "/hqdefault.jpg";
+				logger.LogInformation(
+					"Attempting to download YouTube screenshot for submission {SubmissionId} from {Url}",
+					submission.Id, youtubeEmbedImageLink);
+
 				try
 				{
-					var youtubeEmbedImageLink = "https://i.ytimg.com/vi/" + submission.EncodeEmbedLink!.Split('/').Last() + "/hqdefault.jpg";
 					using var client = new HttpClient();
 					var response = await client.GetAsync(youtubeEmbedImageLink);
 					if (response.IsSuccessStatusCode)
 					{
 						screenshotFile = await response.Content.ReadAsByteArrayAsync();
+						logger.LogInformation(
+							"Successfully downloaded YouTube screenshot for submission {SubmissionId}, size: {Size} bytes",
+							submission.Id, screenshotFile.Length);
+					}
+					else
+					{
+						logger.LogWarning(
+							"Failed to download YouTube screenshot for submission {SubmissionId}: HTTP {StatusCode}",
+							submission.Id, response.StatusCode);
 					}
 				}
-				catch
+				catch (Exception ex)
 				{
-					// Ignore screenshot download failures
+					logger.LogWarning(ex,
+						"Exception while downloading YouTube screenshot for submission {SubmissionId} from {Url}",
+						submission.Id, youtubeEmbedImageLink);
 				}
 			}
+
+			var duration = (DateTime.UtcNow - startTime).TotalMilliseconds;
+			logger.LogInformation(
+				"Successfully created submission {SubmissionId} ({SubmissionTitle}) by user {UserId} in {Duration}ms",
+				submission.Id, submission.Title, request.Submitter.Id, duration);
 
 			return new SubmitResult(null, submission.Id, submission.Title, screenshotFile);
 		}
 		catch (Exception ex)
 		{
+			var duration = (DateTime.UtcNow - startTime).TotalMilliseconds;
+			logger.LogError(ex,
+				"Failed to create submission for user {UserId}, game: {GameName} after {Duration}ms",
+				request.Submitter.Id, request.GameName, duration);
 			return new FailedSubmitResult(ex.ToString());
 		}
 	}
 
 	public async Task<PublishSubmissionResult> Publish(PublishSubmissionRequest request)
 	{
+		var startTime = DateTime.UtcNow;
+		logger.LogInformation(
+			"Starting publication process for submission {SubmissionId} by user {UserId}, filename: {MovieFilename}",
+			request.SubmissionId, request.UserId, request.MovieFilename + "." + request.MovieExtension);
+
 		var submission = await db.Submissions
 			.Include(s => s.SubmissionAuthors)
 			.ThenInclude(sa => sa.Author)
@@ -708,12 +869,18 @@ internal class QueueService(
 
 		if (submission is null || !submission.CanPublish())
 		{
+			logger.LogWarning(
+				"Submission {SubmissionId} not found or cannot be published (status: {Status})",
+				request.SubmissionId, submission?.Status.ToString() ?? "null");
 			return new FailedPublishSubmissionResult("Submission not found or cannot be published");
 		}
 
 		var movieFileName = request.MovieFilename + "." + request.MovieExtension;
 		if (await db.Publications.AnyAsync(p => p.MovieFileName == movieFileName))
 		{
+			logger.LogWarning(
+				"Movie filename {MovieFilename} already exists, cannot publish submission {SubmissionId}",
+				movieFileName, request.SubmissionId);
 			return new FailedPublishSubmissionResult($"Movie filename {movieFileName} already exists");
 		}
 
@@ -724,13 +891,24 @@ internal class QueueService(
 				.SingleOrDefaultAsync(p => p.Id == request.MovieToObsolete.Value))?.Id;
 			if (publicationToObsolete is null)
 			{
+				logger.LogWarning(
+					"Publication {PublicationId} to obsolete does not exist for submission {SubmissionId}",
+					request.MovieToObsolete.Value, request.SubmissionId);
 				return new FailedPublishSubmissionResult("Publication to obsolete does not exist");
 			}
+
+			logger.LogInformation(
+				"Submission {SubmissionId} will obsolete publication {PublicationId}",
+				request.SubmissionId, publicationToObsolete.Value);
 		}
 
 		try
 		{
 			using var dbTransaction = await db.BeginTransactionAsync();
+
+			logger.LogDebug(
+				"Creating publication entity for submission {SubmissionId}, class: {ClassId}, system: {SystemId}",
+				request.SubmissionId, submission.IntendedClass!.Id, submission.System!.Id);
 
 			var publication = new Publication
 			{
@@ -768,9 +946,17 @@ internal class QueueService(
 
 			await db.SaveChangesAsync(); // Need an ID for the Title
 			publication.Title = publication.GenerateTitle();
+			logger.LogInformation(
+				"Created publication {PublicationId} ({PublicationTitle}) from submission {SubmissionId}",
+				publication.Id, publication.Title, request.SubmissionId);
 
+			logger.LogDebug("Uploading screenshot for publication {PublicationId}", publication.Id);
 			var (screenshotPath, screenshotBytes) = await uploader.UploadScreenshot(publication.Id, request.Screenshot, request.ScreenshotDescription);
+			logger.LogInformation(
+				"Uploaded screenshot for publication {PublicationId}: {ScreenshotPath}",
+				publication.Id, screenshotPath);
 
+			logger.LogDebug("Creating wiki page for publication {PublicationId}", publication.Id);
 			var addedWikiPage = await wikiPages.Add(new WikiCreateRequest
 			{
 				RevisionMessage = $"Auto-generated from Movie #{publication.Id}",
@@ -781,18 +967,31 @@ internal class QueueService(
 
 			submission.Status = Published;
 			db.SubmissionStatusHistory.Add(request.SubmissionId, Published);
+			logger.LogInformation(
+				"Marked submission {SubmissionId} as Published",
+				request.SubmissionId);
 
 			if (publicationToObsolete.HasValue)
 			{
+				logger.LogInformation(
+					"Obsoleting publication {ObsoletePublicationId} with {NewPublicationId}",
+					publicationToObsolete.Value, publication.Id);
 				await ObsoleteWith(publicationToObsolete.Value, publication.Id);
 			}
 
 			await userManager.AssignAutoAssignableRolesByPublication(publication.Authors.Select(pa => pa.UserId), publication.Title);
 			await tva.PostSubmissionPublished(request.SubmissionId, publication.Id);
 			await dbTransaction.CommitAsync();
+			logger.LogInformation(
+				"Successfully committed publication {PublicationId} transaction",
+				publication.Id);
 
 			if (youtubeSync.IsYoutubeUrl(request.OnlineWatchingUrl))
 			{
+				logger.LogInformation(
+					"Syncing YouTube video for publication {PublicationId}: {Url}",
+					publication.Id, request.OnlineWatchingUrl);
+
 				var video = new YoutubeVideo(
 					publication.Id,
 					publication.CreateTimestamp,
@@ -808,6 +1007,10 @@ internal class QueueService(
 
 			if (youtubeSync.IsYoutubeUrl(request.AlternateOnlineWatchingUrl))
 			{
+				logger.LogInformation(
+					"Syncing alternate YouTube video for publication {PublicationId}: {Url}",
+					publication.Id, request.AlternateOnlineWatchingUrl);
+
 				var video = new YoutubeVideo(
 					publication.Id,
 					publication.CreateTimestamp,
@@ -821,10 +1024,19 @@ internal class QueueService(
 				await youtubeSync.SyncYouTubeVideo(video);
 			}
 
+			var duration = (DateTime.UtcNow - startTime).TotalMilliseconds;
+			logger.LogInformation(
+				"Successfully published submission {SubmissionId} as publication {PublicationId} ({PublicationTitle}) by user {UserId} in {Duration}ms",
+				request.SubmissionId, publication.Id, publication.Title, request.UserId, duration);
+
 			return new PublishSubmissionResult(null, publication.Id, publication.Title, screenshotPath, screenshotBytes);
 		}
 		catch (Exception ex)
 		{
+			var duration = (DateTime.UtcNow - startTime).TotalMilliseconds;
+			logger.LogError(ex,
+				"Failed to publish submission {SubmissionId} by user {UserId} after {Duration}ms",
+				request.SubmissionId, request.UserId, duration);
 			return new FailedPublishSubmissionResult(ex.ToString());
 		}
 	}
@@ -847,6 +1059,10 @@ internal class QueueService(
 
 	internal async Task<bool> ObsoleteWith(int publicationToObsolete, int obsoletingPublicationId)
 	{
+		logger.LogInformation(
+			"Obsoleting publication {ObsoletePublicationId} with {NewPublicationId}",
+			publicationToObsolete, obsoletingPublicationId);
+
 		var toObsolete = await db.Publications
 			.Include(p => p.PublicationUrls)
 			.Include(p => p.System)
@@ -857,6 +1073,9 @@ internal class QueueService(
 
 		if (toObsolete is null)
 		{
+			logger.LogWarning(
+				"Publication {ObsoletePublicationId} not found for obsoleting",
+				publicationToObsolete);
 			return false;
 		}
 
@@ -865,11 +1084,28 @@ internal class QueueService(
 
 		toObsolete.ObsoletedById = obsoletingPublicationId;
 		await db.SaveChangesAsync();
+		logger.LogInformation(
+			"Marked publication {ObsoletePublicationId} ({ObsoleteTitle}) as obsoleted by {NewPublicationId}",
+			publicationToObsolete, toObsolete.Title, obsoletingPublicationId);
 
-		foreach (var url in toObsolete.PublicationUrls
-					.ThatAreStreaming()
-					.Where(pu => youtubeSync.IsYoutubeUrl(pu.Url)))
+		var youtubeUrls = toObsolete.PublicationUrls
+			.ThatAreStreaming()
+			.Where(pu => youtubeSync.IsYoutubeUrl(pu.Url))
+			.ToList();
+
+		if (youtubeUrls.Any())
 		{
+			logger.LogInformation(
+				"Syncing {Count} YouTube URLs for obsoleted publication {ObsoletePublicationId}",
+				youtubeUrls.Count, publicationToObsolete);
+		}
+
+		foreach (var url in youtubeUrls)
+		{
+			logger.LogDebug(
+				"Syncing YouTube URL {Url} for obsoleted publication {ObsoletePublicationId}",
+				url.Url, publicationToObsolete);
+
 			var obsoleteVideo = new YoutubeVideo(
 				toObsolete.Id,
 				toObsolete.CreateTimestamp,
@@ -886,13 +1122,22 @@ internal class QueueService(
 			await youtubeSync.SyncYouTubeVideo(obsoleteVideo);
 		}
 
+		logger.LogInformation(
+			"Successfully obsoleted publication {ObsoletePublicationId}",
+			publicationToObsolete);
+
 		return true;
 	}
 
 	internal async Task<ParsedSubmissionData?> MapParsedResult(IParseResult parseResult)
 	{
+		logger.LogDebug(
+			"Mapping parsed result: {SystemCode}, {Frames} frames, {RerecordCount} rerecords",
+			parseResult.SystemCode, parseResult.Frames, parseResult.RerecordCount);
+
 		if (!parseResult.Success)
 		{
+			logger.LogError("Attempted to map failed parse result");
 			throw new InvalidOperationException("Cannot mapped failed parse result.");
 		}
 
@@ -902,6 +1147,9 @@ internal class QueueService(
 
 		if (system is null)
 		{
+			logger.LogWarning(
+				"Unknown system code {SystemCode} in parsed result",
+				parseResult.SystemCode);
 			return null;
 		}
 
@@ -911,6 +1159,9 @@ internal class QueueService(
 		if (warnings.Any())
 		{
 			warningsString = string.Join(",", warnings).Cap(500);
+			logger.LogWarning(
+				"Parse result for {SystemCode} has warnings: {Warnings}",
+				parseResult.SystemCode, warningsString);
 		}
 
 		GameSystemFrameRate? systemFrameRate;
@@ -923,6 +1174,10 @@ internal class QueueService(
 
 			if (frameRate is null)
 			{
+				logger.LogInformation(
+					"Creating new frame rate entry for system {SystemCode}: {FrameRate} fps, region {Region}",
+					system.Code, parseResult.FrameRateOverride.Value, parseResult.Region.ToString().ToUpper());
+
 				frameRate = new GameSystemFrameRate
 				{
 					System = system,
@@ -968,14 +1223,24 @@ internal class QueueService(
 		string revisionMessage,
 		bool watchTopic)
 	{
+		logger.LogInformation(
+			"User {UserId} ({UserName}) attempting to claim submission {SubmissionId} for {ClaimType}",
+			userId, userName, submissionId, assignToJudge ? "judging" : "publishing");
+
 		var submission = await db.Submissions.FindAsync(submissionId);
 		if (submission is null)
 		{
+			logger.LogWarning(
+				"Submission {SubmissionId} not found for claim by user {UserId}",
+				submissionId, userId);
 			return ClaimSubmissionResult.Error("Submission not found");
 		}
 
 		if (submission.Status != requiredStatus)
 		{
+			logger.LogWarning(
+				"Submission {SubmissionId} has status {CurrentStatus}, required {RequiredStatus} for claim by user {UserId}",
+				submissionId, submission.Status, requiredStatus, userId);
 			return ClaimSubmissionResult.Error("Submission can not be claimed");
 		}
 
@@ -1002,13 +1267,27 @@ internal class QueueService(
 
 		if (watchTopic && submission.TopicId.HasValue)
 		{
+			logger.LogDebug(
+				"Adding user {UserId} to watch list for topic {TopicId} of submission {SubmissionId}",
+				userId, submission.TopicId.Value, submissionId);
 			await topicWatcher.WatchTopic(submission.TopicId.Value, userId, true);
 		}
 
 		var result = await db.TrySaveChanges();
-		return result.IsSuccess()
-			? ClaimSubmissionResult.Successful(submission.Title)
-			: ClaimSubmissionResult.Error("Unable to claim");
+		if (result.IsSuccess())
+		{
+			logger.LogInformation(
+				"User {UserId} ({UserName}) successfully claimed submission {SubmissionId} ({SubmissionTitle}) for {ClaimType}",
+				userId, userName, submissionId, submission.Title, assignToJudge ? "judging" : "publishing");
+			return ClaimSubmissionResult.Successful(submission.Title);
+		}
+		else
+		{
+			logger.LogError(
+				"Failed to save claim for submission {SubmissionId} by user {UserId}: {Errors}",
+				submissionId, userId, string.Join(", ", result.Errors));
+			return ClaimSubmissionResult.Error("Unable to claim");
+		}
 	}
 }
 
