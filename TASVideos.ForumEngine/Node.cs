@@ -438,16 +438,24 @@ public class Element : INode
 			case "color":
 				w.OpenTag("span");
 
-				// TODO: More fully featured anti-style injection
-				w.Attribute("style", "color: " + Options.Split(';')[0]);
+				// Sanitize color value to prevent style injection attacks
+				var sanitizedColor = StyleSanitizer.SanitizePropertyValue("color", Options);
+				if (!string.IsNullOrEmpty(sanitizedColor))
+				{
+					w.Attribute("style", sanitizedColor);
+				}
 				await WriteChildren(w, h);
 				w.CloseTag("span");
 				break;
 			case "bgcolor":
 				w.OpenTag("span");
 
-				// TODO: More fully featured anti-style injection
-				w.Attribute("style", "background-color: " + Options.Split(';')[0]);
+				// Sanitize background-color value to prevent style injection attacks
+				var sanitizedBgColor = StyleSanitizer.SanitizePropertyValue("background-color", Options);
+				if (!string.IsNullOrEmpty(sanitizedBgColor))
+				{
+					w.Attribute("style", sanitizedBgColor);
+				}
 				await WriteChildren(w, h);
 				w.CloseTag("span");
 				break;
@@ -456,16 +464,37 @@ public class Element : INode
 
 				w.Attribute("class", "fontsize");
 
-				// TODO: More fully featured anti-style injection
-				var sizeStr = Options.Split(';')[0];
+				// Sanitize font-size value to prevent style injection attacks
+				var sizeStr = Options.Split(';')[0].Trim();
+				string? sanitizedSize = null;
+
+				// Try parsing as plain number (legacy format from old site)
 				if (double.TryParse(sizeStr, NumberStyles.Float | NumberStyles.AllowThousands, NumberFormatInfo.InvariantInfo, out var sizeDouble))
 				{
 					// default font size of the old site was 12px, so if size was given without a unit, divide by 12 and use em
-					w.Attribute("style", $"--fs: {(sizeDouble / 12).ToString(CultureInfo.InvariantCulture)}em");
+					var emValue = (sizeDouble / 12).ToString(CultureInfo.InvariantCulture) + "em";
+					// Validate the generated em value through sanitizer
+					sanitizedSize = StyleSanitizer.SanitizePropertyValue("font-size", emValue);
+					if (!string.IsNullOrEmpty(sanitizedSize))
+					{
+						// Extract just the value part after "font-size: "
+						sanitizedSize = sanitizedSize.Substring("font-size: ".Length);
+					}
 				}
 				else
 				{
-					w.Attribute("style", $"--fs: {sizeStr}");
+					// Try sanitizing as-is (might have a unit already)
+					var validated = StyleSanitizer.SanitizePropertyValue("font-size", sizeStr);
+					if (!string.IsNullOrEmpty(validated))
+					{
+						// Extract just the value part after "font-size: "
+						sanitizedSize = validated.Substring("font-size: ".Length);
+					}
+				}
+
+				if (!string.IsNullOrEmpty(sanitizedSize))
+				{
+					w.Attribute("style", $"--fs: {sanitizedSize}");
 				}
 
 				await WriteChildren(w, h);
