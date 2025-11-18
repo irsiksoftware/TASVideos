@@ -13,6 +13,11 @@ Contributions are encouraged but should follow site coding standards: https://ta
 # Try it out!
 Wiki page for setting up local development: https://github.com/TASVideos/tasvideos/wiki/Local-Development-Setup
 
+# Documentation
+
+- **[Architecture Decision Records (ADRs)](./docs/architecture/README.md)** - Key architectural decisions and their rationale
+- **[Frontend Design Specification](./docs/DESIGN-SPEC.md)** - Frontend design guidelines and standards
+
 ---
 
 **Why did the TAS speedrunner break up with their partner?**
