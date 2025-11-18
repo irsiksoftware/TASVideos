@@ -99,7 +99,15 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 		services.AddScoped<IPublicationMaintenanceLogger, PublicationMaintenanceLogger>();
 		services.AddScoped<IUserMaintenanceLogger, UserMaintenanceLogger>();
-		services.AddScoped<IQueueService, QueueService>();
+
+		// Queue/Submission services - refactored into focused services
+		services.AddScoped<ISubmissionService, SubmissionService>();
+		services.AddScoped<IMovieParserService, MovieParserService>();
+		services.AddScoped<ISubmissionPublicationService, SubmissionPublicationService>();
+		services.AddScoped<ISubmissionAuthorizationService, SubmissionAuthorizationService>();
+		services.AddScoped<ISubmissionClaimService, SubmissionClaimService>();
+		services.AddScoped<IQueueService, QueueService>(); // Orchestrator
+
 		services.AddScoped<IUserFiles, UserFiles>();
 
 		return services;
