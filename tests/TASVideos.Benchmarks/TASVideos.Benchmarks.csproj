@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\TASVideos.Parsers\TASVideos.Parsers.csproj" />
+    <ProjectReference Include="..\..\TASVideos.ForumEngine\TASVideos.ForumEngine.csproj" />
+    <ProjectReference Include="..\..\TASVideos.WikiEngine\TASVideos.WikiEngine.csproj" />
+    <ProjectReference Include="..\..\TASVideos.Core\TASVideos.Core.csproj" />
+    <ProjectReference Include="..\..\TASVideos.Data\TASVideos.Data.csproj" />
+    <ProjectReference Include="..\..\TASVideos.Common\TASVideos.Common.csproj" />
+    <ProjectReference Include="..\TASVideos.Tests.Base\TASVideos.Tests.Base.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\TASVideos.MovieParsers.Tests\Bk2SampleFiles\2Frames.bk2" Link="SampleFiles\2Frames.bk2" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\TASVideos.MovieParsers.Tests\Bk2SampleFiles\System-Nes.bk2" Link="SampleFiles\System-Nes.bk2" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\TASVideos.MovieParsers.Tests\Fm2SampleFiles\ntsc.fm2" Link="SampleFiles\ntsc.fm2" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
