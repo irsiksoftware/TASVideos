@@ -1,5 +1,6 @@
 ﻿using System.IO.Compression;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using TASVideos.Core.Services.Wiki;
 using TASVideos.Core.Services.Youtube;
 using TASVideos.Core.Settings;
@@ -111,7 +112,8 @@ internal class QueueService(
 	IMovieFormatDeprecator deprecator,
 	IForumService forumService,
 	ITASVideosGrue tasvideosGrue,
-	ITopicWatcher topicWatcher)
+	ITopicWatcher topicWatcher,
+	ILogger<QueueService> logger)
 	: IQueueService
 {
 	private readonly int _minimumHoursBeforeJudgment = settings.MinimumHoursBeforeJudgment;
@@ -678,9 +680,19 @@ internal class QueueService(
 						screenshotFile = await response.Content.ReadAsByteArrayAsync();
 					}
 				}
-				catch
+				catch (HttpRequestException ex)
 				{
-					// Ignore screenshot download failures
+					// Expected failure: YouTube image not available
+					logger.LogWarning(ex,
+						"Failed to download YouTube thumbnail for submission {SubmissionId}: {Url}",
+						submission.Id, youtubeEmbedImageLink);
+				}
+				catch (TaskCanceledException ex)
+				{
+					// Timeout
+					logger.LogWarning(ex,
+						"Timeout downloading YouTube thumbnail for submission {SubmissionId}",
+						submission.Id);
 				}
 			}
 
