@@ -26,6 +26,11 @@ public class WikiPage : BaseEntity, ISoftDeletable
 	[JsonIgnore]
 	public NpgsqlTsVector SearchVector { get; set; } = null!;
 
+	/// <summary>
+	/// PostgreSQL system column used for optimistic concurrency control
+	/// </summary>
+	public uint Version { get; set; }
+
 	public int? AuthorId { get; set; }
 	public User? Author { get; set; }
 

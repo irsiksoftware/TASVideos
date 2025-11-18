@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
+using TASVideos.Core.Helpers;
 using TASVideos.WikiEngine;
 
 namespace TASVideos.Core.Services.Wiki;
@@ -102,7 +103,11 @@ public interface IWikiPages
 	Task<IWikiPage?> RollbackLatest(string pageName, int authorId);
 }
 
-// TODO: handle DbConcurrency exceptions
+/// <summary>
+/// Service for managing wiki pages with optimistic concurrency control.
+/// Uses PostgreSQL's xmin system column (exposed as Version property) for detecting concurrent edits.
+/// Methods that modify wiki pages use exponential backoff retry logic to handle conflicts.
+/// </summary>
 internal class WikiPages(ApplicationDbContext db, ICacheService cache) : IWikiPages
 {
 	private WikiResult? this[string pageName]
@@ -256,12 +261,10 @@ internal class WikiPages(ApplicationDbContext db, ICacheService cache) : IWikiPa
 			newRevision.Revision = maxRevision.Value + 1;
 		}
 
-		try
+		var referralsGenerated = await GenerateReferrals(addRequest.PageName, addRequest.Markup);
+		if (!referralsGenerated)
 		{
-			await GenerateReferrals(addRequest.PageName, addRequest.Markup);
-		}
-		catch (DbUpdateConcurrencyException)
-		{
+			// Concurrency conflict occurred and all retries exhausted
 			return null;
 		}
 
@@ -315,14 +318,15 @@ internal class WikiPages(ApplicationDbContext db, ICacheService cache) : IWikiPa
 			referral.Referrer = destinationName;
 		}
 
-		try
+		var saveSuccessful = await ConcurrencyHelper.ExecuteWithRetryAsync(async () =>
 		{
 			await db.SaveChangesAsync();
-		}
-		catch (DbUpdateException)
+		});
+
+		if (!saveSuccessful)
 		{
 			// Either the original pages were modified or the destination page
-			// was created during this call from another thread
+			// was created during this call from another thread, and all retries were exhausted
 			return false;
 		}
 
@@ -401,140 +405,141 @@ internal class WikiPages(ApplicationDbContext db, ICacheService cache) : IWikiPa
 	public async Task<int> Delete(string pageName)
 	{
 		pageName = pageName.Trim('/');
-		var revisions = await db.WikiPages
-			.ForPage(pageName)
-			.ThatAreNotDeleted()
-			.ToListAsync();
 
-		foreach (var revision in revisions)
+		var result = await ConcurrencyHelper.ExecuteWithRetryAsync(async () =>
 		{
-			revision.IsDeleted = true;
-			revision.ChildId = null;
-		}
+			var revisions = await db.WikiPages
+				.ForPage(pageName)
+				.ThatAreNotDeleted()
+				.ToListAsync();
 
-		// Remove referrals
-		// Note: Pages that refer to this page will not be removed
-		// It's important for them to remain and show as broken links
-		var referrers = await db.WikiReferrals
-			.ForPage(pageName)
-			.ToListAsync();
+			foreach (var revision in revisions)
+			{
+				revision.IsDeleted = true;
+				revision.ChildId = null;
+			}
 
-		db.RemoveRange(referrers);
+			// Remove referrals
+			// Note: Pages that refer to this page will not be removed
+			// It's important for them to remain and show as broken links
+			var referrers = await db.WikiReferrals
+				.ForPage(pageName)
+				.ToListAsync();
 
-		try
-		{
+			db.RemoveRange(referrers);
 			await db.SaveChangesAsync();
-		}
-		catch (DbUpdateConcurrencyException)
+
+			return revisions.Count;
+		}, defaultValue: -1);
+
+		if (result != -1)
 		{
-			// revisions were modified by another thread during this call
-			// Note that we aren't catching DbUpdateException
-			// As there are no anticipated scenarios that could cause this
-			return -1;
+			ClearCache(pageName);
 		}
 
-		ClearCache(pageName);
-		return revisions.Count;
+		return result;
 	}
 
 	public async Task Delete(string pageName, int revision)
 	{
 		pageName = pageName.Trim('/');
-		var wikiPage = await db.WikiPages
-			.ThatAreNotDeleted()
-			.Revision(pageName, revision)
-			.SingleOrDefaultAsync();
 
-		if (wikiPage is not null)
+		await ConcurrencyHelper.ExecuteWithRetryAsync(async () =>
 		{
-			var isCurrent = wikiPage.IsCurrent();
+			var wikiPage = await db.WikiPages
+				.ThatAreNotDeleted()
+				.Revision(pageName, revision)
+				.SingleOrDefaultAsync();
 
-			if (isCurrent)
+			if (wikiPage is not null)
 			{
-				cache.Remove(pageName);
-			}
+				var isCurrent = wikiPage.IsCurrent();
 
-			wikiPage.IsDeleted = true;
-
-			// Update referrers if latest revision
-			if (wikiPage.Child is null)
-			{
-				var referrers = await db.WikiReferrals
-					.ForPage(pageName)
-					.ToListAsync();
-
-				db.RemoveRange(referrers);
-			}
-
-			await db.SaveChangesAsync();
-
-			if (isCurrent)
-			{
-				// Set the previous page as current, if there is one
-				var newCurrent = db.WikiPages
-					.Include(wp => wp.Author)
-					.ThatAreNotDeleted()
-					.ForPage(pageName)
-					.OrderByDescending(wp => wp.Revision)
-					.FirstOrDefault();
-
-				if (newCurrent is not null)
+				if (isCurrent)
 				{
-					newCurrent.ChildId = null;
-					this[pageName] = newCurrent.ToWikiResult();
-					await GenerateReferrals(pageName, newCurrent.Markup);
+					cache.Remove(pageName);
+				}
+
+				wikiPage.IsDeleted = true;
+
+				// Update referrers if latest revision
+				if (wikiPage.Child is null)
+				{
+					var referrers = await db.WikiReferrals
+						.ForPage(pageName)
+						.ToListAsync();
+
+					db.RemoveRange(referrers);
+				}
+
+				await db.SaveChangesAsync();
+
+				if (isCurrent)
+				{
+					// Set the previous page as current, if there is one
+					var newCurrent = db.WikiPages
+						.Include(wp => wp.Author)
+						.ThatAreNotDeleted()
+						.ForPage(pageName)
+						.OrderByDescending(wp => wp.Revision)
+						.FirstOrDefault();
+
+					if (newCurrent is not null)
+					{
+						newCurrent.ChildId = null;
+						this[pageName] = newCurrent.ToWikiResult();
+						await GenerateReferrals(pageName, newCurrent.Markup);
+					}
 				}
 			}
-		}
+		});
 	}
 
 	public async Task<bool> Undelete(string pageName)
 	{
 		pageName = pageName.Trim('/');
-		var allRevisions = await db.WikiPages
-			.Include(r => r.Author)
-			.ForPage(pageName)
-			.ToListAsync();
 
-		var revisions = allRevisions
-			.ThatAreDeleted()
-			.ToList();
-
-		if (revisions.Any())
+		return await ConcurrencyHelper.ExecuteWithRetryAsync(async () =>
 		{
-			foreach (var revision in revisions)
+			var allRevisions = await db.WikiPages
+				.Include(r => r.Author)
+				.ForPage(pageName)
+				.ToListAsync();
+
+			var revisions = allRevisions
+				.ThatAreDeleted()
+				.ToList();
+
+			if (revisions.Any())
 			{
-				revision.IsDeleted = false;
-				var previous = allRevisions
-					.FirstOrDefault(r => r.Revision == revision.Revision - 1);
-				if (previous is not null)
+				foreach (var revision in revisions)
 				{
-					previous.ChildId = revision.Id;
+					revision.IsDeleted = false;
+					var previous = allRevisions
+						.FirstOrDefault(r => r.Revision == revision.Revision - 1);
+					if (previous is not null)
+					{
+						previous.ChildId = revision.Id;
+					}
 				}
+
+				var current = revisions
+					.OrderByDescending(r => r.Revision)
+					.First();
+
+				// GenerateReferrals includes SaveChanges
+				var referralsGenerated = await GenerateReferrals(pageName, current.Markup);
+				if (!referralsGenerated)
+				{
+					return false;
+				}
+
+				ClearCache(pageName);
+				this[pageName] = current.ToWikiResult();
 			}
 
-			var current = revisions
-				.OrderByDescending(r => r.Revision)
-				.First();
-
-			try
-			{
-				// Calls SaveChanges()
-				await GenerateReferrals(pageName, current.Markup);
-			}
-			catch (DbUpdateConcurrencyException)
-			{
-				// revisions were modified by another thread during this call
-				// Note that we aren't catching DbUpdateException
-				// As there are no anticipated scenarios that could cause this
-				return false;
-			}
-
-			ClearCache(pageName);
-			this[pageName] = current.ToWikiResult();
-		}
-
-		return true;
+			return true;
+		}, defaultValue: false);
 	}
 
 	public async Task FlushCache()
@@ -555,24 +560,27 @@ internal class WikiPages(ApplicationDbContext db, ICacheService cache) : IWikiPa
 		cache.Remove(CacheKeys.CurrentWikiCache + "-" + pageName.ToLower());
 	}
 
-	private async Task GenerateReferrals(string pageName, string markup)
+	private async Task<bool> GenerateReferrals(string pageName, string markup)
 	{
-		var existingReferrals = await db.WikiReferrals
-			.ForPage(pageName)
-			.ToListAsync();
+		return await ConcurrencyHelper.ExecuteWithRetryAsync(async () =>
+		{
+			var existingReferrals = await db.WikiReferrals
+				.ForPage(pageName)
+				.ToListAsync();
 
-		db.WikiReferrals.RemoveRange(existingReferrals);
+			db.WikiReferrals.RemoveRange(existingReferrals);
 
-		var referrers = Util.GetReferrals(markup)
-			.Select(wl => new WikiPageReferral
-			{
-				Referrer = pageName,
-				Referral = wl.Link,
-				Excerpt = wl.Excerpt
-			});
+			var referrers = Util.GetReferrals(markup)
+				.Select(wl => new WikiPageReferral
+				{
+					Referrer = pageName,
+					Referral = wl.Link,
+					Excerpt = wl.Excerpt
+				});
 
-		db.WikiReferrals.AddRange(referrers);
-		await db.SaveChangesAsync();
+			db.WikiReferrals.AddRange(referrers);
+			await db.SaveChangesAsync();
+		});
 	}
 
 	public async Task<IWikiPage?> RollbackLatest(string pageName, int authorId)
