@@ -1,7 +1,20 @@
 namespace TASVideos.Api;
 
+/// <summary>
+/// Defines API endpoints for TASVideos events.
+/// </summary>
+/// <remarks>
+/// Events represent special marathon or showcase runs (e.g., GDQ, TASBot)
+/// where TAS movies are featured or demonstrated. Events include metadata
+/// about the event, authors, tags, and related URLs.
+/// </remarks>
 internal static class EventsEndpoints
 {
+	/// <summary>
+	/// Maps event-related endpoints to the application.
+	/// </summary>
+	/// <param name="app">The web application to map endpoints to.</param>
+	/// <returns>The web application with event endpoints mapped.</returns>
 	public static WebApplication MapEvents(this WebApplication app)
 	{
 		var group = app.MapApiGroup("Events");
@@ -11,6 +24,10 @@ internal static class EventsEndpoints
 				await db.Events
 					.ToEventsResponse()
 					.SingleOrDefaultAsync(e => e.Id == id)))
+			.WithName("GetEventById")
+			.WithSummary("Get an event by ID")
+			.WithDescription("Retrieves detailed information about a specific TASVideos event (e.g., marathon or showcase run) by its unique identifier.")
+			.WithTags("Events")
 			.ProducesFromId<EventsResponse>("event");
 
 		group.MapGet("", async ([AsParameters] EventsRequest request, HttpContext context, ApplicationDbContext db) =>
@@ -29,6 +46,22 @@ internal static class EventsEndpoints
 
 			return Results.Ok(events);
 		})
+		.WithName("GetEvents")
+		.WithSummary("Get events with filtering")
+		.WithDescription(@"Retrieves a list of TASVideos events with optional filtering and sorting.
+
+Events are special marathon or showcase runs where TAS movies are featured.
+
+Supports filtering by:
+- Years
+- Tags
+- Authors
+- Event names
+
+Results can be sorted by date or title.
+
+**Note:** When using field selection, the actual returned count may be less than the requested limit due to deduplication of distinct values.")
+		.WithTags("Events")
 		.Receives<EventsRequest>()
 		.ProducesList<EventsResponse>("a list of event entries, searchable by the given criteria");
 
