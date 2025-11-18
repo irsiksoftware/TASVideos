@@ -101,6 +101,7 @@ public interface IQueueService
 internal class QueueService(
 	AppSettings settings,
 	ApplicationDbContext db,
+	IHttpClientFactory httpClientFactory,
 	IYoutubeSync youtubeSync,
 	ITASVideoAgent tva,
 	IWikiPages wikiPages,
@@ -671,7 +672,7 @@ internal class QueueService(
 				try
 				{
 					var youtubeEmbedImageLink = "https://i.ytimg.com/vi/" + submission.EncodeEmbedLink!.Split('/').Last() + "/hqdefault.jpg";
-					using var client = new HttpClient();
+					var client = httpClientFactory.CreateClient();
 					var response = await client.GetAsync(youtubeEmbedImageLink);
 					if (response.IsSuccessStatusCode)
 					{
