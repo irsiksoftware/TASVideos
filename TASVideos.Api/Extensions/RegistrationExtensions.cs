@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.OpenApi.Models;
+using TASVideos.Api.Models;
 
 namespace TASVideos.Api;
 
@@ -14,29 +15,43 @@ internal static class RegistrationExtensions
 	public static RouteHandlerBuilder ProducesFromId<T>(this RouteHandlerBuilder builder, string resource)
 	{
 		return builder
-			.Produces<T>()
+			.Produces<T>(StatusCodes.Status200OK, "application/json")
+			.Produces<ErrorResponse>(StatusCodes.Status400BadRequest, "application/json")
+			.Produces<ErrorResponse>(StatusCodes.Status404NotFound, "application/json")
+			.Produces<ErrorResponse>(StatusCodes.Status500InternalServerError, "application/json")
 			.WithSummary($"Returns a {resource} with the given id.")
 			.WithOpenApi(g =>
 			{
 				g.Responses.AddGeneric400();
 				g.Responses.Add404ById(resource);
+				g.Responses.AddGeneric500();
 				return g;
 			});
 	}
 
 	public static RouteHandlerBuilder Receives<T>(this RouteHandlerBuilder builder)
 	{
-		return builder.WithOpenApi(g =>
-		{
-			g.Parameters.Describe<T>();
-			g.Responses.AddGeneric400();
-			return g;
-		});
+		return builder
+			.Produces<ValidationErrorResponse>(StatusCodes.Status400BadRequest, "application/json")
+			.Produces<ErrorResponse>(StatusCodes.Status500InternalServerError, "application/json")
+			.WithOpenApi(g =>
+			{
+				g.Parameters.Describe<T>();
+				g.Responses.AddGeneric400();
+				g.Responses.AddGeneric500();
+				return g;
+			});
 	}
 
 	public static RouteHandlerBuilder ProducesList<T>(this RouteHandlerBuilder builder, string summary)
 	{
-		return builder.WithSummary($"Returns {summary}").Produces<IEnumerable<T>>().WithOpenApi();
+		return builder
+			.WithSummary($"Returns {summary}")
+			.Produces<IEnumerable<T>>(StatusCodes.Status200OK, "application/json")
+			.Produces<ValidationErrorResponse>(StatusCodes.Status400BadRequest, "application/json")
+			.Produces<ErrorResponse>(StatusCodes.Status500InternalServerError, "application/json")
+			.WithDescription(@"Note: When using the `fields` parameter for field selection, the actual number of returned items may be less than the requested `pageSize` due to distinct/deduplication logic.")
+			.WithOpenApi();
 	}
 
 	public static void Add(this OpenApiResponses responses, int statusCode, string description)
@@ -52,6 +67,21 @@ internal static class RegistrationExtensions
 	public static void Add404ById(this OpenApiResponses responses, string resourceName)
 	{
 		responses.Add("404", new OpenApiResponse { Description = $"{resourceName} with the given id could not be found" });
+	}
+
+	public static void AddGeneric500(this OpenApiResponses responses)
+	{
+		responses.Add("500", new OpenApiResponse { Description = "An internal server error occurred." });
+	}
+
+	public static void Add401(this OpenApiResponses responses)
+	{
+		responses.Add("401", new OpenApiResponse { Description = "Authentication is required." });
+	}
+
+	public static void Add403(this OpenApiResponses responses)
+	{
+		responses.Add("403", new OpenApiResponse { Description = "Insufficient permissions to perform this action." });
 	}
 
 	// SwaggerParameter from Swashbuckle.AspNetCore.Annotations should be able to do this automatically but there is an outstanding bug, so we need to do this ourselves

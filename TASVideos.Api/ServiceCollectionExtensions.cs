@@ -54,11 +54,105 @@ public static class ServiceCollectionExtensions
 				{
 					Title = "TASVideos API",
 					Version = $"v{version.Major}.{version.Minor}.{version.Revision}",
-					Description = "API For tasvideos.org content"
+					Description = @"# TASVideos API
+
+The TASVideos API provides programmatic access to TASVideos.org content including publications, submissions, games, and more.
+
+## Authentication
+
+Most read endpoints are publicly accessible. Write operations require JWT Bearer authentication.
+
+## Rate Limiting
+
+API requests may be rate-limited. Please implement appropriate backoff strategies.
+
+## Field Selection
+
+**Important:** When using the `fields` parameter to select specific fields, the API returns distinct objects.
+This means the actual returned count may be less than the requested `pageSize` due to deduplication.
+
+For example, if you request 100 publications but only select the 'class' field, and only 5 unique classes exist in those 100 records, you will receive only 5 results.
+
+## Pagination
+
+Use `pageSize` and `currentPage` parameters to paginate through results. Maximum page size is 100.
+
+## Sorting
+
+Use the `sort` parameter with comma-separated field names. Prefix with `+` for ascending or `-` for descending order.
+Example: `sort=-createTimestamp,+title`
+
+## Resources
+
+- [TASVideos.org](https://tasvideos.org)
+- [Wiki Documentation](https://tasvideos.org/HomePages/Wiki)
+- [API Changelog](https://tasvideos.org/HomePages/ApiChangelog)",
+					Contact = new OpenApiContact
+					{
+						Name = "TASVideos Team",
+						Url = new Uri("https://tasvideos.org/HomePages/Contact")
+					},
+					License = new OpenApiLicense
+					{
+						Name = "Creative Commons Attribution 2.0",
+						Url = new Uri("https://creativecommons.org/licenses/by/2.0/")
+					}
 				});
-			c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+
+			// Include XML comments
+			var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+			var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+			if (File.Exists(xmlPath))
 			{
-				Name = "Authorization"
+				c.IncludeXmlComments(xmlPath);
+			}
+
+			// Add JWT Bearer authentication
+			c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+			{
+				Description = @"JWT Authorization header using the Bearer scheme.
+
+Enter 'Bearer' [space] and then your token in the text input below.
+
+Example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'",
+				Name = "Authorization",
+				In = ParameterLocation.Header,
+				Type = SecuritySchemeType.ApiKey,
+				Scheme = "Bearer"
+			});
+
+			c.AddSecurityRequirement(new OpenApiSecurityRequirement
+			{
+				{
+					new OpenApiSecurityScheme
+					{
+						Reference = new OpenApiReference
+						{
+							Type = ReferenceType.SecurityScheme,
+							Id = "Bearer"
+						},
+						Scheme = "oauth2",
+						Name = "Bearer",
+						In = ParameterLocation.Header
+					},
+					new List<string>()
+				}
+			});
+
+			// Enable annotations
+			c.EnableAnnotations();
+
+			// Add servers
+			c.AddServer(new OpenApiServer
+			{
+				Url = "https://tasvideos.org",
+				Description = "Production"
+			});
+
+			c.AddServer(new OpenApiServer
+			{
+				Url = "http://localhost:5000",
+				Description = "Local Development"
 			});
 		});
 	}

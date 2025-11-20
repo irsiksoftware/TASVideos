@@ -1,0 +1,371 @@
+{
+	"info": {
+		"name": "TASVideos API",
+		"description": "TASVideos.org API - Access publications, submissions, games, and more.\n\n## Authentication\n\nMost read endpoints are publicly accessible. Write operations require JWT Bearer authentication.\n\n## Field Selection\n\n**Important:** When using the `fields` parameter, the API returns distinct objects, so the actual count may be less than the requested `pageSize`.\n\n## Base URLs\n\n- Production: https://tasvideos.org\n- Local: http://localhost:5000",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://tasvideos.org",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Authenticate User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    pm.collectionVariables.set('token', pm.response.text());",
+									"    console.log('Token saved to collection variable');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"your-username\",\n  \"password\": \"your-password\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/users/authenticate",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "users", "authenticate"]
+						},
+						"description": "Authenticates a user and returns a JWT Bearer token. The token is automatically saved to the collection variable for use in authenticated requests."
+					},
+					"response": []
+				}
+			],
+			"description": "User authentication endpoints"
+		},
+		{
+			"name": "Publications",
+			"item": [
+				{
+					"name": "Get All Publications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/publications?pageSize=10&currentPage=1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "publications"],
+							"query": [
+								{
+									"key": "pageSize",
+									"value": "10",
+									"description": "Number of records to return (max 100)"
+								},
+								{
+									"key": "currentPage",
+									"value": "1",
+									"description": "Page number (1-based)"
+								},
+								{
+									"key": "sort",
+									"value": "-createTimestamp",
+									"description": "Sort order (e.g., -createTimestamp,+title)",
+									"disabled": true
+								},
+								{
+									"key": "fields",
+									"value": "id,title,class",
+									"description": "Fields to return (comma-separated)",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Retrieves a paginated list of publications with optional filtering and sorting."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Publication by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/publications/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "publications", "1"]
+						},
+						"description": "Retrieves a specific publication by its ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Publication endpoints - access published TAS movies"
+		},
+		{
+			"name": "Submissions",
+			"item": [
+				{
+					"name": "Get All Submissions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/submissions?pageSize=10&currentPage=1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "submissions"],
+							"query": [
+								{
+									"key": "pageSize",
+									"value": "10"
+								},
+								{
+									"key": "currentPage",
+									"value": "1"
+								},
+								{
+									"key": "sort",
+									"value": "-createTimestamp",
+									"disabled": true
+								},
+								{
+									"key": "fields",
+									"value": "id,title,status",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Retrieves a paginated list of submissions."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Submission by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/submissions/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "submissions", "1"]
+						},
+						"description": "Retrieves a specific submission by its ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Submission endpoints - access TAS submissions under review"
+		},
+		{
+			"name": "Games",
+			"item": [
+				{
+					"name": "Get All Games",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/games?pageSize=10&currentPage=1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "games"],
+							"query": [
+								{
+									"key": "pageSize",
+									"value": "10"
+								},
+								{
+									"key": "currentPage",
+									"value": "1"
+								},
+								{
+									"key": "systemCodes",
+									"value": "NES,SNES",
+									"description": "Filter by system codes (comma-separated)",
+									"disabled": true
+								},
+								{
+									"key": "sort",
+									"value": "+displayName",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Retrieves a paginated list of games with optional filtering by system codes."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Game by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/games/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "games", "1"]
+						},
+						"description": "Retrieves a specific game by its ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Game endpoints - access video game metadata"
+		},
+		{
+			"name": "Tags",
+			"item": [
+				{
+					"name": "Get All Tags",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/tags?pageSize=50",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "tags"],
+							"query": [
+								{
+									"key": "pageSize",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Retrieves a list of all publication tags."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tag by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/tags/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "tags", "1"]
+						},
+						"description": "Retrieves a specific tag by its ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tag",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"example-tag\",\n  \"displayName\": \"Example Tag\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/tags",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "tags"]
+						},
+						"description": "Creates a new publication tag. Requires TagMaintenance permission."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Tag",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"updated-tag\",\n  \"displayName\": \"Updated Tag Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/tags/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "tags", "1"]
+						},
+						"description": "Updates an existing tag. Requires TagMaintenance permission."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Tag",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/tags/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "tags", "1"]
+						},
+						"description": "Deletes a tag if it's not in use. Requires TagMaintenance permission."
+					},
+					"response": []
+				}
+			],
+			"description": "Tag endpoints - manage publication tags (write operations require authentication)"
+		}
+	]
+}
