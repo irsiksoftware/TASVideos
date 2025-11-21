@@ -175,6 +175,11 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 For security concerns, please review our [Security Policy](SECURITY.md) and report vulnerabilities responsibly to the project maintainers.
 
+# Documentation
+
+- **[Architecture Decision Records (ADRs)](./docs/architecture/README.md)** - Key architectural decisions and their rationale
+- **[Frontend Design Specification](./docs/DESIGN-SPEC.md)** - Frontend design guidelines and standards
+
 ---
 
 **Why did the TAS speedrunner break up with their partner?**
