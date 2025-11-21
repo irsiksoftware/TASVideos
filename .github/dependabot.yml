@@ -1,0 +1,43 @@
+version: 2
+updates:
+  # NuGet package updates
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+
+    # Group minor and patch updates together
+    groups:
+      nuget-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+    # Commit message configuration
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+
+    # PR configuration
+    labels:
+      - "dependencies"
+      - "nuget"
+
+    # Ignore major version updates for review-sensitive packages
+    # (Remove or modify based on your needs)
+    ignore:
+      # Example: Keep specific packages at current major version
+      # - dependency-name: "Microsoft.AspNetCore.*"
+      #   update-types: ["version-update:semver-major"]
+
+    # Automatically merge patch updates (optional - commented out by default)
+    # Note: Requires branch protection rules and GitHub Actions workflow
+    # pull-request-branch-name:
+    #   separator: "/"

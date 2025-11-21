@@ -30,6 +30,50 @@ We're down to 0 warnings, and let's keep it that way!
 If possible, please include unit tests when adding new features.
 We don't have Selenium or anything set up so you can't really test the frontend automatically, but any increase in test coverage is welcomed.
 
+## Dependency Management
+
+The project uses [Dependabot](https://docs.github.com/en/code-security/dependabot) to automatically monitor and update NuGet package dependencies. This helps keep the project secure and up-to-date with the latest package versions.
+
+### How Dependabot Works
+
+- **Automatic Updates**: Dependabot runs weekly (every Monday at 9:00 UTC) to check for package updates
+- **Grouped Updates**: Minor and patch version updates are grouped together into a single PR to reduce noise
+- **Major Updates**: Major version updates are created as separate PRs for careful review
+- **PR Limits**: Maximum of 5 open Dependabot PRs at any time to keep the PR queue manageable
+
+### Handling Dependabot PRs
+
+When Dependabot creates a pull request:
+
+1. **Patch Updates** (e.g., 1.0.0 → 1.0.1):
+   - These are typically bug fixes and security patches
+   - Review the changelog if significant changes are mentioned
+   - Generally safe to merge after CI passes
+
+2. **Minor Updates** (e.g., 1.0.0 → 1.1.0):
+   - These include new features but should maintain backward compatibility
+   - Review the changelog for new features or deprecations
+   - Test locally if the update affects core functionality
+   - Merge after CI passes and basic testing
+
+3. **Major Updates** (e.g., 1.0.0 → 2.0.0):
+   - These may include breaking changes
+   - Carefully review the migration guide and changelog
+   - Test thoroughly, especially for core dependencies
+   - May require code changes to accommodate breaking changes
+   - Discuss with other maintainers before merging if uncertain
+
+### Configuration
+
+The Dependabot configuration is located at `.github/dependabot.yml`. The configuration includes:
+- Package ecosystem monitoring (NuGet)
+- Update schedule and frequency
+- PR grouping strategy
+- Commit message prefixes
+- Labels for organization
+
+To modify the Dependabot behavior (e.g., ignore specific packages, change schedule), edit the configuration file and commit the changes.
+
 ## Site Design
 
 The site has a [design document](DESIGN-SPEC.md) which details the structure, philosophy, and design goals of the frontend segments of the codebase which is great study for aspiring frontend contributors.
