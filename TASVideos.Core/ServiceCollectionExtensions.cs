@@ -1,10 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using TASVideos.Core.Services;
 using TASVideos.Core.Services.Cache;
 using TASVideos.Core.Services.Email;
 using TASVideos.Core.Services.ExternalMediaPublisher;
 using TASVideos.Core.Services.ExternalMediaPublisher.Distributors;
 using TASVideos.Core.Services.Forum;
+using TASVideos.Core.Services.HealthChecks;
 using TASVideos.Core.Services.Wiki;
 using TASVideos.Core.Services.Youtube;
 using TASVideos.Core.Settings;
@@ -21,7 +23,8 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IWikiToMetaDescriptionRenderer, T2>();
 		services
 			.AddCacheService(settings.CacheSettings)
-			.AddExternalMediaPublishing(settings, isDevelopment);
+			.AddExternalMediaPublishing(settings, isDevelopment)
+			.AddTASVideosHealthChecks(settings);
 
 		// HTTP Client
 		services
@@ -147,5 +150,80 @@ public static class ServiceCollectionExtensions
 		}
 
 		return services.AddScoped<IPostDistributor, DistributorStorage>();
+	}
+
+	private static IServiceCollection AddTASVideosHealthChecks(this IServiceCollection services, AppSettings settings)
+	{
+		var healthChecksBuilder = services.AddHealthChecks();
+
+		// Database health check (PostgreSQL)
+		healthChecksBuilder.AddNpgSql(
+			settings.ConnectionStrings.PostgresConnection,
+			name: "database",
+			failureStatus: HealthStatus.Unhealthy,
+			tags: ["db", "sql", "postgresql", "critical"]);
+
+		// Cache health checks
+		if (settings.CacheSettings.CacheType == "Redis")
+		{
+			healthChecksBuilder.AddRedis(
+				settings.CacheSettings.ConnectionString,
+				name: "cache_redis",
+				failureStatus: HealthStatus.Degraded,
+				tags: ["cache", "redis"]);
+		}
+		else if (settings.CacheSettings.CacheType == "Memory")
+		{
+			healthChecksBuilder.AddCheck<MemoryCacheHealthCheck>(
+				"cache_memory",
+				failureStatus: HealthStatus.Healthy,
+				tags: ["cache", "memory"]);
+		}
+
+		// External Services - Discord
+		if (settings.Discord.IsEnabled())
+		{
+			healthChecksBuilder.AddUrlGroup(
+				new Uri("https://discord.com/api/v10/"),
+				name: "external_discord",
+				failureStatus: HealthStatus.Degraded,
+				tags: ["external", "discord"],
+				timeout: TimeSpan.FromSeconds(5));
+		}
+
+		// External Services - YouTube
+		if (settings.YouTube.IsEnabled())
+		{
+			healthChecksBuilder.AddUrlGroup(
+				new Uri("https://www.googleapis.com/youtube/v3/"),
+				name: "external_youtube",
+				failureStatus: HealthStatus.Degraded,
+				tags: ["external", "youtube"],
+				timeout: TimeSpan.FromSeconds(5));
+		}
+
+		// External Services - Bluesky
+		if (settings.Bluesky.IsEnabled())
+		{
+			healthChecksBuilder.AddUrlGroup(
+				new Uri("https://bsky.social/xrpc/"),
+				name: "external_bluesky",
+				failureStatus: HealthStatus.Degraded,
+				tags: ["external", "bluesky"],
+				timeout: TimeSpan.FromSeconds(5));
+		}
+
+		// System health checks
+		healthChecksBuilder.AddCheck<FileSystemHealthCheck>(
+			"filesystem",
+			failureStatus: HealthStatus.Degraded,
+			tags: ["system", "filesystem"]);
+
+		healthChecksBuilder.AddCheck<MemoryHealthCheck>(
+			"memory",
+			failureStatus: HealthStatus.Degraded,
+			tags: ["system", "memory"]);
+
+		return services;
 	}
 }

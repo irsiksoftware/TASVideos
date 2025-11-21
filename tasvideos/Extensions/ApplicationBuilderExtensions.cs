@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.StaticFiles;
+﻿using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using System.Text.Json;
 using TASVideos.Core.Settings;
 using TASVideos.Middleware;
 
@@ -126,6 +129,99 @@ public static class ApplicationBuilderExtensions
 					builder.RequireClaim(CustomClaimTypes.Permission, ((int)PermissionTo.SeeDiagnostics).ToString());
 				});
 			}
+
+			// Health check endpoints
+			endpoints.MapHealthChecks();
+		});
+	}
+
+	private static void MapHealthChecks(this IEndpointRouteBuilder endpoints)
+	{
+		// Overall health - public endpoint
+		endpoints.MapHealthChecks("/health", new HealthCheckOptions
+		{
+			Predicate = _ => true,
+			ResponseWriter = async (context, report) =>
+			{
+				context.Response.ContentType = "application/json";
+				var result = JsonSerializer.Serialize(new
+				{
+					status = report.Status.ToString(),
+					timestamp = DateTime.UtcNow,
+					totalDuration = report.TotalDuration.TotalMilliseconds
+				}, new JsonSerializerOptions { WriteIndented = true });
+				await context.Response.WriteAsync(result);
+			}
+		});
+
+		// Readiness check - for Kubernetes/orchestrators
+		// Checks critical services (database)
+		endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions
+		{
+			Predicate = check => check.Tags.Contains("critical") || check.Tags.Contains("db"),
+			ResponseWriter = async (context, report) =>
+			{
+				context.Response.ContentType = "application/json";
+				var result = JsonSerializer.Serialize(new
+				{
+					status = report.Status.ToString(),
+					checks = report.Entries.Select(e => new
+					{
+						name = e.Key,
+						status = e.Value.Status.ToString(),
+						duration = e.Value.Duration.TotalMilliseconds
+					}),
+					timestamp = DateTime.UtcNow
+				}, new JsonSerializerOptions { WriteIndented = true });
+				await context.Response.WriteAsync(result);
+			}
+		});
+
+		// Liveness check - for Kubernetes/orchestrators
+		// Basic application liveness (no external dependencies)
+		endpoints.MapHealthChecks("/health/live", new HealthCheckOptions
+		{
+			Predicate = check => check.Tags.Contains("memory") || check.Tags.Contains("filesystem"),
+			ResponseWriter = async (context, report) =>
+			{
+				context.Response.ContentType = "application/json";
+				var result = JsonSerializer.Serialize(new
+				{
+					status = report.Status.ToString(),
+					timestamp = DateTime.UtcNow
+				}, new JsonSerializerOptions { WriteIndented = true });
+				await context.Response.WriteAsync(result);
+			}
+		});
+
+		// Detailed health check - admin only
+		endpoints.MapHealthChecks("/health/detailed", new HealthCheckOptions
+		{
+			Predicate = _ => true,
+			ResponseWriter = async (context, report) =>
+			{
+				context.Response.ContentType = "application/json";
+				var result = JsonSerializer.Serialize(new
+				{
+					status = report.Status.ToString(),
+					totalDuration = report.TotalDuration.TotalMilliseconds,
+					timestamp = DateTime.UtcNow,
+					checks = report.Entries.Select(e => new
+					{
+						name = e.Key,
+						status = e.Value.Status.ToString(),
+						description = e.Value.Description,
+						duration = e.Value.Duration.TotalMilliseconds,
+						tags = e.Value.Tags,
+						exception = e.Value.Exception?.Message,
+						data = e.Value.Data
+					})
+				}, new JsonSerializerOptions { WriteIndented = true });
+				await context.Response.WriteAsync(result);
+			}
+		}).RequireAuthorization(builder =>
+		{
+			builder.RequireClaim(CustomClaimTypes.Permission, ((int)PermissionTo.SeeDiagnostics).ToString());
 		});
 	}
 }
