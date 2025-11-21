@@ -284,6 +284,12 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int, UserClaim
 			entity.HasIndex(e => new { e.PageName, e.Revision })
 				.IsUnique();
 
+			// Use PostgreSQL's xmin system column for optimistic concurrency control
+			entity.Property(e => e.Version)
+				.IsRowVersion()
+				.HasColumnType("xid")
+				.ValueGeneratedOnAddOrUpdate();
+
 			if (Database.IsNpgsql())
 			{
 				entity
