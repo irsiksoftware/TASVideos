@@ -42,4 +42,20 @@ public class RoleServiceTests : TestDbBase
 		var actual = await _roleService.IsInUse(existingRoleId);
 		Assert.IsTrue(actual);
 	}
+
+	[TestMethod]
+	public async Task GetAllRolesUserCanAssign_UserWithNoAssignedRoles_ReturnsRoles()
+	{
+		// Test for the edge case that the EF Core 2.1 workaround was addressing
+		var user = _db.AddUser(1);
+		_db.Roles.Add(new Role { Id = 1, Name = "TestRole1" });
+		_db.Roles.Add(new Role { Id = 2, Name = "TestRole2" });
+		await _db.SaveChangesAsync();
+
+		// User has no assigned roles - empty list
+		var result = await _roleService.GetAllRolesUserCanAssign(user.Entity.Id, []);
+
+		// Should not throw an exception and should return roles
+		Assert.IsNotNull(result);
+	}
 }

@@ -29,14 +29,13 @@ internal class RoleService(ApplicationDbContext db) : IRoleService
 			{
 				r.Id,
 				r.Name,
-				Diabled = !r.RolePermission.All(rp => assignablePermissions.Contains(rp.PermissionId))
-					&& assignedRoleList.Any() // EF Core 2.1 issue, needs this or a user with no assigned roles blows up
+				Disabled = !r.RolePermission.All(rp => assignablePermissions.Contains(rp.PermissionId))
 					&& assignedRoleList.Contains(r.Id)
 			})
 			.OrderBy(s => s.Name)
 			.ToListAsync();
 
-		return roles.Select(r => new AssignableRole(r.Id, r.Name, r.Diabled));
+		return roles.Select(r => new AssignableRole(r.Id, r.Name, r.Disabled));
 	}
 
 	public async Task<bool> IsInUse(int roleId) => await db.Users.AnyAsync(u => u.UserRoles.Any(ur => ur.RoleId == roleId));
