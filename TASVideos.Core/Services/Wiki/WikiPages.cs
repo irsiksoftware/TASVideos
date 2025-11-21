@@ -127,10 +127,11 @@ internal class WikiPages(ApplicationDbContext db, ICacheService cache) : IWikiPa
 	public async Task<IReadOnlyCollection<WikiOrphan>> Orphans() => await db.WikiPages
 			.ThatAreNotDeleted()
 			.ThatAreCurrent()
-			.Where(wp => wp.PageName != "MediaPosts") // Linked by the navbar
-			.Where(wp => !db.WikiReferrals.Any(wr => wr.Referral == wp.PageName))
-			.Where(wp => !wp.PageName.StartsWith("InternalSystem")) // These by design aren't orphans they are directly used in the system
-			.Where(wp => !wp.PageName.Contains("/")) // Subpages are linked by default by the parents, so we know they are not orphans
+			.Where(wp =>
+				wp.PageName != "MediaPosts" // Linked by the navbar
+				&& !db.WikiReferrals.Any(wr => wr.Referral == wp.PageName)
+				&& !wp.PageName.StartsWith("InternalSystem") // These by design aren't orphans they are directly used in the system
+				&& !wp.PageName.Contains("/")) // Subpages are linked by default by the parents, so we know they are not orphans
 			.Select(wp => new WikiOrphan(
 				wp.PageName,
 				wp.LastUpdateTimestamp,
@@ -138,13 +139,14 @@ internal class WikiPages(ApplicationDbContext db, ICacheService cache) : IWikiPa
 			.ToListAsync();
 
 	public async Task<IReadOnlyCollection<WikiPageReferral>> BrokenLinks() => await db.WikiReferrals
-		.Where(wr => !Regex.IsMatch(wr.Referral, "(^[0-9]+)([GMS])"))
-		.Where(wr => wr.Referrer != "SandBox")
-		.Where(wr => !wr.Referrer.StartsWith("HomePages/Bisqwit/InitialWikiPages")) // Historical pages with legacy links
-		.Where(wr => !db.WikiPages.Any(wp => wp.ChildId == null && wp.IsDeleted == false && wp.PageName == wr.Referral))
-		.Where(wr => !wr.Referral.StartsWith("Subs-"))
-		.Where(wr => !wr.Referral.StartsWith("Movies-"))
-		.Where(wr => !string.IsNullOrWhiteSpace(wr.Referral))
+		.Where(wr =>
+			!Regex.IsMatch(wr.Referral, "(^[0-9]+)([GMS])")
+			&& wr.Referrer != "SandBox"
+			&& !wr.Referrer.StartsWith("HomePages/Bisqwit/InitialWikiPages") // Historical pages with legacy links
+			&& !db.WikiPages.Any(wp => wp.ChildId == null && wp.IsDeleted == false && wp.PageName == wr.Referral)
+			&& !wr.Referral.StartsWith("Subs-")
+			&& !wr.Referral.StartsWith("Movies-")
+			&& !string.IsNullOrWhiteSpace(wr.Referral))
 		.ToListAsync();
 
 	public async Task<bool> Exists([NotNullWhen(true)] string? pageName, bool includeDeleted = false)
