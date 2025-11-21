@@ -31,6 +31,8 @@ public class AppSettings
 
 	public bool EnableMetrics { get; set; }
 
+	public ApiRateLimitSettings ApiRateLimit { get; set; } = new();
+
 	// User is only allowed to submit X submissions in Y days
 	public class SubmissionRateLimit
 	{
@@ -142,6 +144,15 @@ public class AppSettings
 	public class ReCaptchaSettings
 	{
 		public string Version { get; set; } = "";
+	}
+
+	public class ApiRateLimitSettings
+	{
+		public bool EnableRateLimiting { get; set; } = true;
+		public int AnonymousRequestsPerHour { get; set; } = 100;
+		public int AuthenticatedRequestsPerHour { get; set; } = 1000;
+		public int SearchRequestsPerHour { get; set; } = 50;
+		public int WriteRequestsPerHour { get; set; } = 200;
 	}
 }
 

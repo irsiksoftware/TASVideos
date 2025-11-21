@@ -39,6 +39,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="AspNetCore.ReCaptcha" />
+		<PackageReference Include="AspNetCoreRateLimit" />
 		<PackageReference Include="JavaScriptEngineSwitcher.V8" />
 		<PackageReference Include="LigerShark.WebOptimizer.Core" />
 		<PackageReference Include="LigerShark.WebOptimizer.Sass" />
