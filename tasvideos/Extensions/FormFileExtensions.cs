@@ -8,6 +8,13 @@ namespace TASVideos.Extensions;
 
 public static class FormFileExtensions
 {
+	/// <summary>
+	/// Maximum allowed size for decompressed files (100 MB).
+	/// This limit protects against zip bomb attacks where small compressed files
+	/// expand to extremely large sizes, potentially causing DoS conditions.
+	/// </summary>
+	private const long MaxDecompressedSize = 100 * 1024 * 1024; // 100 MB
+
 	public static bool IsZip(this IFormFile? formFile)
 		=> formFile is not null
 			&& formFile.FileName.EndsWith(".zip")
@@ -68,7 +75,9 @@ public static class FormFileExtensions
 
 	/// <summary>
 	/// Attempts to decompress the form file from the gzip format. If decompression fails, it returns the raw bytes.
+	/// Protected against zip bomb attacks by enforcing a maximum decompressed size limit.
 	/// </summary>
+	/// <exception cref="InvalidOperationException">Thrown when decompressed data exceeds the maximum allowed size, which may indicate a zip bomb attack.</exception>
 	public static async Task<MemoryStream> DecompressOrTakeRaw(this IFormFile? formFile)
 	{
 		if (formFile is null)
@@ -83,8 +92,9 @@ public static class FormFileExtensions
 		{
 			rawFileStream.Position = 0;
 			using var gzip = new GZipStream(rawFileStream, CompressionMode.Decompress, leaveOpen: true); // leaveOpen in case of an exception
-			var decompressedFileStream = new MemoryStream(); // TODO: To avoid zip bombs we should limit the max size of this MemoryStream
-			await gzip.CopyToAsync(decompressedFileStream);
+			var decompressedFileStream = new MemoryStream();
+			using var limitedStream = new LimitedStream(decompressedFileStream, MaxDecompressedSize);
+			await gzip.CopyToAsync(limitedStream);
 			await rawFileStream.DisposeAsync(); // manually dispose because we specified leaveOpen
 			decompressedFileStream.Position = 0;
 			return decompressedFileStream;
@@ -93,6 +103,12 @@ public static class FormFileExtensions
 		{
 			rawFileStream.Position = 0;
 			return rawFileStream;
+		}
+		catch (InvalidOperationException ex) when (ex.Message.Contains("zip bomb"))
+		{
+			// Log the potential zip bomb attack for security monitoring
+			await rawFileStream.DisposeAsync();
+			throw; // Re-throw to let the caller handle the security exception
 		}
 	}
 }

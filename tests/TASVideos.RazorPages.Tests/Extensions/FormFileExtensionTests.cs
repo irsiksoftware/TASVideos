@@ -248,6 +248,69 @@ public class FormFileExtensionTests
 		Assert.AreEqual(uncompressedLength, actual.Length);
 	}
 
+	[TestMethod]
+	public async Task DecompressOrTakeRaw_ZipBomb_ThrowsException()
+	{
+		// Create a zip bomb: compress a large amount of data that exceeds the 100MB limit
+		// We'll create 101 MB of data (more than the 100 MB limit)
+		const int megabyte = 1024 * 1024;
+		const int dataSize = 101 * megabyte;
+
+		// Create highly compressible data (all zeros)
+		byte[] largeData = new byte[dataSize];
+
+		// Compress it with GZip
+		using var compressedStream = new MemoryStream();
+		using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Compress))
+		{
+			await gzipStream.WriteAsync(largeData);
+		}
+
+		byte[] compressedBytes = compressedStream.ToArray();
+		var formFile = new FormFile(new MemoryStream(compressedBytes), 0, compressedBytes.Length, "Data", "test.gz");
+
+		// Act & Assert
+		var exception = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+			async () => await formFile.DecompressOrTakeRaw());
+
+		Assert.IsTrue(exception.Message.Contains("zip bomb"),
+			$"Expected exception message to contain 'zip bomb', but got: {exception.Message}");
+		Assert.IsTrue(exception.Message.Contains("104857600"), // 100 MB in bytes
+			$"Expected exception message to contain max size, but got: {exception.Message}");
+	}
+
+	[TestMethod]
+	public async Task DecompressOrTakeRaw_JustUnderLimit_Succeeds()
+	{
+		// Create data just under the 100MB limit (99 MB)
+		const int megabyte = 1024 * 1024;
+		const int dataSize = 99 * megabyte;
+
+		byte[] largeData = new byte[dataSize];
+		// Add some pattern to make it slightly less compressible
+		for (int i = 0; i < dataSize; i++)
+		{
+			largeData[i] = (byte)(i % 256);
+		}
+
+		// Compress it with GZip
+		using var compressedStream = new MemoryStream();
+		using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Compress))
+		{
+			await gzipStream.WriteAsync(largeData);
+		}
+
+		byte[] compressedBytes = compressedStream.ToArray();
+		var formFile = new FormFile(new MemoryStream(compressedBytes), 0, compressedBytes.Length, "Data", "test.gz");
+
+		// Act
+		var result = await formFile.DecompressOrTakeRaw();
+
+		// Assert
+		Assert.IsNotNull(result);
+		Assert.AreEqual(dataSize, result.Length);
+	}
+
 	private static (byte[] GzippedBytes, int UncompressedLength) GZippedBytes()
 	{
 		byte[] data = "Hello World"u8.ToArray();
