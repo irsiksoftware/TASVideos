@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.ResponseCompression;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using TASVideos.Core.Settings;
 using TASVideos.TagHelpers;
 
@@ -176,38 +178,97 @@ public static class ServiceCollectionExtensions
 	{
 		if (settings.EnableMetrics)
 		{
-			services
+			var otelBuilder = services
 				.AddOpenTelemetry()
-				.WithMetrics(builder =>
-				{
-					builder.AddMeter("Microsoft.AspNetCore.Hosting")
-						.AddView("http.server.request.duration", new ExplicitBucketHistogramConfiguration
-						{
-							Boundaries = [] // disable duration histograms of endpoints, which is a LOT of data, but keep total counts
-						});
-
-					builder.AddMeter(
-						"Microsoft.AspNetCore.Server.Kestrel",
-						"Microsoft.AspNetCore.Routing",
-						"Microsoft.AspNetCore.Diagnostics");
-
-					builder.AddMeter("Npgsql")
-						.AddView("db.client.commands.duration", new ExplicitBucketHistogramConfiguration
-						{
-							Boundaries = [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10]
-						})
-						.AddView("db.client.connections.create_time", new ExplicitBucketHistogramConfiguration
-						{
-							Boundaries = [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10]
-						});
-
-					builder.AddMeter("TASVideos");
-
-					builder.AddPrometheusExporter(options =>
+				.ConfigureResource(resource => resource
+					.AddService(
+						serviceName: settings.OpenTelemetry.ServiceName,
+						serviceVersion: typeof(ServiceCollectionExtensions).Assembly.GetName().Version?.ToString() ?? "1.0.0")
+					.AddAttributes(new Dictionary<string, object>
 					{
-						options.ScrapeEndpointPath = "/Metrics";
+						["deployment.environment"] = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"
+					}));
+
+			otelBuilder.WithMetrics(builder =>
+			{
+				builder.AddAspNetCoreInstrumentation();
+				builder.AddHttpClientInstrumentation();
+
+				builder.AddMeter("Microsoft.AspNetCore.Hosting")
+					.AddView("http.server.request.duration", new ExplicitBucketHistogramConfiguration
+					{
+						Boundaries = [] // disable duration histograms of endpoints, which is a LOT of data, but keep total counts
 					});
+
+				builder.AddMeter(
+					"Microsoft.AspNetCore.Server.Kestrel",
+					"Microsoft.AspNetCore.Routing",
+					"Microsoft.AspNetCore.Diagnostics");
+
+				builder.AddMeter("Npgsql")
+					.AddView("db.client.commands.duration", new ExplicitBucketHistogramConfiguration
+					{
+						Boundaries = [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10]
+					})
+					.AddView("db.client.connections.create_time", new ExplicitBucketHistogramConfiguration
+					{
+						Boundaries = [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10]
+					});
+
+				builder.AddMeter("TASVideos");
+
+				builder.AddPrometheusExporter(options =>
+				{
+					options.ScrapeEndpointPath = "/Metrics";
 				});
+
+				if (settings.OpenTelemetry.EnableOtlpExporter)
+				{
+					builder.AddOtlpExporter(options =>
+					{
+						options.Endpoint = new Uri(settings.OpenTelemetry.OtlpEndpoint);
+					});
+				}
+			});
+
+			if (settings.OpenTelemetry.EnableTracing)
+			{
+				otelBuilder.WithTracing(builder =>
+				{
+					builder.AddAspNetCoreInstrumentation(options =>
+					{
+						options.RecordException = true;
+						options.Filter = httpContext =>
+						{
+							// Filter out health check and static file requests to reduce noise
+							var path = httpContext.Request.Path.Value ?? string.Empty;
+							return !path.StartsWith("/health", StringComparison.OrdinalIgnoreCase)
+								&& !path.StartsWith("/Metrics", StringComparison.OrdinalIgnoreCase)
+								&& !IsStaticFileRequest(path);
+						};
+					});
+
+					builder.AddHttpClientInstrumentation(options =>
+					{
+						options.RecordException = true;
+					});
+
+					builder.AddEntityFrameworkCoreInstrumentation(options =>
+					{
+						options.SetDbStatementForText = true;
+					});
+
+					builder.AddSource("TASVideos");
+
+					if (settings.OpenTelemetry.EnableOtlpExporter)
+					{
+						builder.AddOtlpExporter(options =>
+						{
+							options.Endpoint = new Uri(settings.OpenTelemetry.OtlpEndpoint);
+						});
+					}
+				});
+			}
 
 			services.AddSingleton<ITASVideosMetrics, TASVideosMetrics>();
 		}
@@ -217,6 +278,18 @@ public static class ServiceCollectionExtensions
 		}
 
 		return services;
+	}
+
+	private static bool IsStaticFileRequest(string path)
+	{
+		string[] staticExtensions =
+		[
+			".js", ".css", ".map",
+			".jpg", ".jpeg", ".png", ".gif", ".svg", ".ico", ".webp",
+			".woff", ".woff2", ".ttf", ".eot", ".otf"
+		];
+
+		return staticExtensions.Any(ext => path.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
 	}
 
 	public static bool ShouldIncludeSourceMappingComments(this IHostEnvironment env)

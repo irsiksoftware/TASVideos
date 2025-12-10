@@ -31,6 +31,8 @@ public class AppSettings
 
 	public bool EnableMetrics { get; set; }
 
+	public OpenTelemetrySettings OpenTelemetry { get; set; } = new();
+
 	public ApiRateLimitSettings ApiRateLimit { get; set; } = new();
 
 	// User is only allowed to submit X submissions in Y days
@@ -153,6 +155,14 @@ public class AppSettings
 		public int AuthenticatedRequestsPerHour { get; set; } = 1000;
 		public int SearchRequestsPerHour { get; set; } = 50;
 		public int WriteRequestsPerHour { get; set; } = 200;
+	}
+
+	public class OpenTelemetrySettings
+	{
+		public bool EnableTracing { get; set; }
+		public bool EnableOtlpExporter { get; set; }
+		public string OtlpEndpoint { get; set; } = "http://localhost:4317";
+		public string ServiceName { get; set; } = "TASVideos";
 	}
 }
 
